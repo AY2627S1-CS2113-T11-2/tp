@@ -1,4 +1,4 @@
-# Duke
+# GPat
 
 {Give product intro here}
 
