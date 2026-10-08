@@ -1,6 +1,10 @@
-# GPat
+# ChatGPat
 
-This is a project template for a greenfield Java project. It's named after the Java mascot _Duke_. Given below are instructions on how to use it.
+This is a greenfield Java project developed from the Duke project template.
+
+ChatGPat is a desktop application for managing student’s grades, optimized for use through a Command Line Interface (CLI) while retaining the benefits of a Graphical User Interface (GUI). If you type quickly, ChatGPat can help you manage modules and GPA faster than traditional GUI applications.
+
+Given below are instructions on how to use it.
 
 ## Setting up in Intellij
 
@@ -8,21 +12,25 @@ Prerequisites: JDK 25 (use the exact version), update Intellij to the most recen
 
 1. **Ensure Intellij JDK 25 is defined as an SDK**, as described [here](https://www.jetbrains.com/help/idea/sdk.html#set-up-jdk) -- this step is not needed if you have used JDK 25 in a previous Intellij project.
 1. **Import the project _as a Gradle project_**, as described [here](https://se-education.org/guides/tutorials/intellijImportGradleProject.html).
-1. **Verify the setup**: After the importing is complete, locate the `src/main/java/seedu/duke/Duke.java` file, right-click it, and choose `Run Duke.main()`. If the setup is correct, you should see something like the below:
+1. **Verify the setup**: After the importing is complete, locate the `src/main/java/seedu/chatgpat/ChatGpat.java` file, right-click it, and choose `Run ChatGpat.main()`. If the setup is correct, you should see something like the below:
    ```
    > Task :compileJava
    > Task :processResources NO-SOURCE
    > Task :classes
    
-   > Task :Duke.main()
-   Hello from
-    ____        _
-   |  _ \ _   _| | _____ 
-   | | | | | | | |/ / _ \
-   | |_| | |_| |   <  __/
-   |____/ \__,_|_|\_\___|
-   
-   What is your name?
+   > Task :ChatGpat.main()
+
+     ██████╗██╗  ██╗ █████╗ ████████╗ ██████╗ ██████╗  █████╗ ████████╗
+    ██╔════╝██║  ██║██╔══██╗╚══██╔══╝██╔════╝ ██╔══██╗██╔══██╗╚══██╔══╝
+    ██║     ███████║███████║   ██║   ██║  ███╗██████╔╝███████║   ██║
+    ██║     ██╔══██║██╔══██║   ██║   ██║   ██║██╔═══╝ ██╔══██║   ██║
+    ╚██████╗██║  ██║██║  ██║   ██║   ╚██████╔╝██║     ██║  ██║   ██║
+     ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝    ╚═════╝ ╚═╝     ╚═╝  ╚═╝   ╚═╝
+
+   How can I help you?
+   ________________________________________________________________________
+
+   >
    ```
    Type some word and press enter to let the execution proceed to the end.
 
@@ -31,7 +39,7 @@ Prerequisites: JDK 25 (use the exact version), update Intellij to the most recen
 ## Build automation using Gradle
 
 * This project uses Gradle for build automation and dependency management. It includes a basic build script as well (i.e. the `build.gradle` file).
-* If you are new to Gradle, refer to the [Gradle Tutorial at se-education.org/guides](https://se-education.org/guides/tutorials/gradle.html).
+* Refer to the [Gradle Tutorial at se-education.org/guides](https://se-education.org/guides/tutorials/gradle.html).
 
 ## Testing
 
@@ -41,26 +49,18 @@ Prerequisites: JDK 25 (use the exact version), update Intellij to the most recen
 
 ### JUnit tests
 
-* A skeleton JUnit test (`src/test/java/seedu/duke/DukeTest.java`) is provided with this project template. 
-* If you are new to JUnit, refer to the [JUnit Tutorial at se-education.org/guides](https://se-education.org/guides/tutorials/junit.html).
+* JUnit tests are under `src/test/java`. Run them via Gradle.
+* Refer to the [JUnit Tutorial at se-education.org/guides](https://se-education.org/guides/tutorials/junit.html).
 
 ## Checkstyle
 
-* A sample CheckStyle rule configuration is provided in this project.
-* If you are new to Checkstyle, refer to the [Checkstyle Tutorial at se-education.org/guides](https://se-education.org/guides/tutorials/checkstyle.html).
+* A Checkstyle configuration is provided in `config/checkstyle`.
+* Refer to the [Checkstyle Tutorial at se-education.org/guides](https://se-education.org/guides/tutorials/checkstyle.html).
 
 ## CI using GitHub Actions
 
-The project uses [GitHub actions](https://github.com/features/actions) for CI. When you push a commit to this repo or PR against it, GitHub actions will run automatically to build and verify the code as updated by the commit/PR.
+The project uses [GitHub actions](https://github.com/features/actions) for CI. When pushing a commit to this repo or PR against it, GitHub actions will run automatically to build and verify the code as updated by the commit/PR.
 
 ## Documentation
 
-`/docs` folder contains a skeleton version of the project documentation.
-
-Steps for publishing documentation to the public: 
-1. If you are using this project template for an individual project, go your fork on GitHub.<br>
-   If you are using this project template for a team project, go to the team fork on GitHub.
-1. Click on the `settings` tab.
-1. Scroll down to the `GitHub Pages` section.
-1. Set the `source` as `master branch /docs folder`.
-1. Optionally, use the `choose a theme` button to choose a theme for your documentation.
+`/docs` folder contains the project documentation.
