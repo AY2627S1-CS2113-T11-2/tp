@@ -1,4 +1,4 @@
-package seedu.duke;
+package seedu.chatgpat.student;
 
 public enum Grade {
     A_PLUS("A+", 5.0, true),
