@@ -4,22 +4,22 @@ import java.util.ArrayList;
 
 public class Student {
     private String name;
-    private String ID;
+    private String id;
     private ArrayList<Module> moduleList = new ArrayList<Module>();
-    private int SUquota;
-    Student(String name, String ID,int SUquota) {
+    private int suQuota;
+    Student(String name, String id,int suQuota) {
         this.name = name;
-        this.ID = ID;
-        this.SUquota = SUquota;
+        this.id = id;
+        this.suQuota = suQuota;
     }
     public String getName() {
         return name;
     }
-    public String getID() {
-        return ID;
+    public String getId() {
+        return id;
     }
-    public int getSUquota() {
-        return SUquota;
+    public int getSuQuota() {
+        return suQuota;
     }
     public boolean isModuleExists(ArrayList<Module> modules, String newCode) {
         for (Module m : modules) {

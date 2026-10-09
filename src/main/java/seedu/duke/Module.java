@@ -8,7 +8,8 @@ public class Module {
     private int credit;
     private Grade grade;
     private boolean isSuApplied;
-    public Module(String moduleCode, String moduleName, String moduleDescription, int credit,Grade grade,boolean isSuApplied) {
+    public Module(String moduleCode, String moduleName, String moduleDescription,
+                  int credit,Grade grade,boolean isSuApplied) {
         this.moduleCode = moduleCode;
         this.moduleName = moduleName;
         this.moduleDescription = moduleDescription;

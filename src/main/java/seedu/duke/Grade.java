@@ -51,3 +51,4 @@ public enum Grade {
         throw new IllegalArgumentException("Invalid grade format: " + input);
     }
 }
+
