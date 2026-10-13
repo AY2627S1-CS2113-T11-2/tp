@@ -20,18 +20,23 @@ public class Module {
     public String getModuleCode() {
         return moduleCode;
     }
+
     public String getModuleName() {
         return moduleName;
     }
+
     public void showModuleDescription() {
         System.out.println(moduleDescription);
     }
+
     public int getCredit() {
         return credit;
     }
+
     public Grade getGrade() {
         return grade;
     }
+
     @Override
     public String toString() {
         String suTag = isSuApplied ? " [S/U]" : "";
@@ -39,4 +44,15 @@ public class Module {
                 moduleCode, credit, grade.getLabel(), suTag);
     }
 
+    public void setModuleCode(String moduleCode) {
+        this.moduleCode = moduleCode;
+    }
+
+    public void setCredit(int credit) {
+        this.credit = credit;
+    }
+
+    public void setGrade(Grade grade) {
+        this.grade = grade;
+    }
 }

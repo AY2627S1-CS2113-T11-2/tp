@@ -69,4 +69,43 @@ public class Student {
         System.out.println("You now have " + moduleList.size() + " module"
                 + (moduleList.size() == 1 ? "" : "s") + " recorded.");
     }
+
+    /**
+     * Edits the module at the given position in the displayed module list.
+     *
+     * @param index Position of the module as shown by printModuleList, starting from 1.
+     * @param newCode New module code, or null to keep the current one.
+     * @param newCredit New credit value, or null to keep the current one.
+     * @param newGrade New grade, or null to keep the current one.
+     */
+    public void editModule(int index, String newCode, Integer newCredit, Grade newGrade) {
+        if (index < 1 || index > moduleList.size()) {
+            System.out.println("Invalid module index: " + index);
+            return;
+        }
+        if (newCode == null && newCredit == null && newGrade == null) {
+            System.out.println("Provide at least one field to edit.");
+            return;
+        }
+        Module module = moduleList.get(index - 1);
+        if (newCode != null && !newCode.equalsIgnoreCase(module.getModuleCode())
+                && isModuleExists(moduleList, newCode)) {
+            System.out.println("Module already exists!");
+            return;
+        }
+        if (newCredit != null && newCredit <= 0) {
+            System.out.println("Credits must be a positive integer.");
+            return;
+        }
+        if (newCode != null) {
+            module.setModuleCode(newCode);
+        }
+        if (newCredit != null) {
+            module.setCredit(newCredit);
+        }
+        if (newGrade != null) {
+            module.setGrade(newGrade);
+        }
+        System.out.println("Module " + index + " updated: " + module);
+    }
 }
