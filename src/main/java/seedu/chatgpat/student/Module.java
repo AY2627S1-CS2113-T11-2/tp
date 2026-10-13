@@ -32,6 +32,25 @@ public class Module {
     public Grade getGrade() {
         return grade;
     }
+
+    /**
+     * Returns whether this module has been SU-ed.
+     *
+     * @return True if this module is SU-ed, false otherwise.
+     */
+    public boolean isSu() {
+        return isSuApplied;
+    }
+
+    /**
+     * Sets the SU status of this module.
+     *
+     * @param isSuApplied The new SU status.
+     */
+    public void setSu(boolean isSuApplied) {
+        this.isSuApplied = isSuApplied;
+    }
+
     @Override
     public String toString() {
         String suTag = isSuApplied ? " [S/U]" : "";

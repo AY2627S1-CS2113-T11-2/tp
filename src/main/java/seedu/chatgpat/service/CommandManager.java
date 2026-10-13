@@ -5,6 +5,7 @@ import java.util.Optional;
 
 import seedu.chatgpat.command.Command;
 import seedu.chatgpat.command.Response;
+import seedu.chatgpat.command.module.SuCommand;
 import seedu.chatgpat.exception.UnknownCommandException;
 import seedu.chatgpat.parser.Parser;
 import seedu.chatgpat.student.Student;
@@ -22,7 +23,9 @@ public class CommandManager {
      * @param student The student containing the module list.
      */
     public CommandManager(Student student) {
-        this(student, List.of());
+        this(student, List.of(
+            SuCommand::parse
+        ));
     }
 
     /**
