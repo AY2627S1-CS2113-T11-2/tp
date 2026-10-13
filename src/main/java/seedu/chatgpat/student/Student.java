@@ -1,11 +1,15 @@
 package seedu.chatgpat.student;
 
 import java.util.ArrayList;
+import java.util.logging.Logger;
 
 import seedu.chatgpat.exception.InvalidIndexException;
 import seedu.chatgpat.exception.SuException;
 
 public class Student {
+    private static final Logger logger =
+        Logger.getLogger(Student.class.getName());
+
     private String name;
     private String id;
     private ArrayList<Module> moduleList = new ArrayList<Module>();
@@ -90,6 +94,9 @@ public class Student {
      */
     public Module getModule(int index) {
         if (index < 1 || index > moduleList.size()) {
+            logger.warning(() -> String.format(
+                    "Rejected getModule(%d); module list size is %d",
+                    index, moduleList.size()));
             throw new InvalidIndexException(index, moduleList.size());
         }
         Module module = moduleList.get(index - 1);
@@ -135,11 +142,18 @@ public class Student {
     public Module applySu(int index) {
         Module module = getModule(index);
         if (module.isSu()) {
+            logger.warning(() -> String.format(
+                    "Rejected SU on module %d (%s): already SU-ed",
+                    index, module.getModuleCode()));
             throw new SuException(String.format(
                     "Module %d is already SU-ed.", index));
         }
         int remainingQuota = getRemainingSuQuota();
         if (module.getCredit() > remainingQuota) {
+            logger.warning(() -> String.format(
+                    "Rejected SU on module %d (%s): needs %d MCs but only %d left",
+                    index, module.getModuleCode(),
+                    module.getCredit(), remainingQuota));
             throw new SuException(String.format(
                     "Insufficient SU quota. Remaining: %d MCs, required: %d MCs.",
                     remainingQuota, module.getCredit()));
