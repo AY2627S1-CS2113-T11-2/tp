@@ -1,4 +1,4 @@
-package seedu.duke;
+package seedu.chatgpat.student;
 
 import java.util.ArrayList;
 
@@ -11,6 +11,13 @@ public class Student {
         this.name = name;
         this.id = id;
         this.suQuota = suQuota;
+    }
+
+    /**
+     * Constructs a placeholding Student with the default set of params.
+     */
+    public Student() {
+        this("John Doe", "A0000000B", 28);
     }
 
     public String getName() {

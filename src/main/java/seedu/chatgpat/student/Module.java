@@ -1,4 +1,4 @@
-package seedu.duke;
+package seedu.chatgpat.student;
 
 public class Module {
 
