@@ -12,6 +12,7 @@ public class Student {
         this.id = id;
         this.suQuota = suQuota;
     }
+
     public String getName() {
         return name;
     }
@@ -29,6 +30,7 @@ public class Student {
         }
         return false;
     }
+
     public void addingModule(Module module) {
         if(isModuleExists(moduleList,module.getModuleCode())) {
             System.out.println("Module already exists!");
@@ -36,6 +38,7 @@ public class Student {
         }
         moduleList.add(module);
     }
+
     public void printModuleList() {
         if (moduleList.isEmpty()) {
             System.out.println("No modules recorded yet.");
@@ -50,5 +53,20 @@ public class Student {
         }
     }
 
-
+    /**
+     * Deletes the module at the given position in the displayed module list.
+     *
+     * @param index Position of the module as shown by printModuleList, starting from 1.
+     */
+    public void deleteModule(int index) {
+        if (index < 1 || index > moduleList.size()) {
+            System.out.println("Invalid module index: " + index);
+            return;
+        }
+        Module removed = moduleList.remove(index - 1);
+        System.out.println("Removed module: " + removed.getModuleCode()
+                + " (" + removed.getCredit() + " MCs, Grade: " + removed.getGrade().getLabel() + ")");
+        System.out.println("You now have " + moduleList.size() + " module"
+                + (moduleList.size() == 1 ? "" : "s") + " recorded.");
+    }
 }
