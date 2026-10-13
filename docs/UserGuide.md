@@ -1,6 +1,6 @@
 # User Guide
 
-ChatGPat is a desktop application for managing student’s grades, optimized for use through a Command Line Interface (CLI) while retaining the benefits of a Graphical User Interface (GUI). If you type quickly, ChatGPat can help you manage modules and GPA faster than traditional GUI applications.
+ChatGPat is a desktop application for managing student grades, optimized for use through a Command Line Interface (CLI). If you type quickly, ChatGPat can help you manage modules and GPA faster than traditional GUI applications.
 
 ## Quick start
 
@@ -9,7 +9,7 @@ ChatGPat is a desktop application for managing student’s grades, optimized for
 3. Download the latest `.jar` file from here.
 4. Copy the file to the folder you want to use as the home folder for your ChatGPat.
 5. Open a terminal, `cd` to the folder containing the JAR file, and run `java -jar chatgpat.jar`.
-6. A GUI similar to the one below should appear in a few seconds. Note how the app contains some sample data.
+6. The ChatGPat banner and a command prompt (`>`) should appear in the terminal.
 7. Type a command in the command box and press Enter to execute it. For example, type `help` and press Enter to open the help window.
 8. Refer to the [Features](#features) section below for details of each command.
 
