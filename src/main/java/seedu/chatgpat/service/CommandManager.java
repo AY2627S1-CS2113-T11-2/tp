@@ -4,12 +4,15 @@ import java.util.List;
 import java.util.Optional;
 
 import seedu.chatgpat.command.Command;
+import seedu.chatgpat.command.ExitCommand;
+import seedu.chatgpat.command.HelpCommand;
 import seedu.chatgpat.command.Response;
 import seedu.chatgpat.command.module.DeleteCommand;
 import seedu.chatgpat.command.module.EditCommand;
 import seedu.chatgpat.command.module.GpaCommand;
 import seedu.chatgpat.command.module.QuotaCommand;
 import seedu.chatgpat.command.module.SuCommand;
+import seedu.chatgpat.command.module.UnsuCommand;
 import seedu.chatgpat.exception.UnknownCommandException;
 import seedu.chatgpat.parser.Parser;
 import seedu.chatgpat.student.Student;
@@ -28,8 +31,11 @@ public class CommandManager {
      */
     public CommandManager(Student student) {
         this(student, List.of(
+            ExitCommand::parse,
+            HelpCommand::parse,
             SuCommand::parse,
             QuotaCommand::parse,
+            UnsuCommand::parse,
             GpaCommand::parse,
             GpaCommand::parse,
             DeleteCommand::parse,

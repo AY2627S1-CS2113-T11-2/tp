@@ -33,7 +33,7 @@ public class ChatGpat {
 
     /**
      * Starts the program.
-     * Loops between user inputs and giving responses.
+     * Loops between user inputs and giving responses until a command requests exit.
      */
     private void run() {
         ui.printWelcome();
@@ -45,6 +45,9 @@ public class ChatGpat {
                 userQuery = ui.getUserQuery();
                 response = commandManager.processQuery(userQuery);
                 ui.printResponse(response);
+                if (response.isExit()) {
+                    return;
+                }
 
             } catch (ChatGpatException e) {
                 response = new Response(e.getMessage());

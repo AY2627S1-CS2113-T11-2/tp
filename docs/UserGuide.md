@@ -10,7 +10,7 @@ ChatGPat is a desktop application for managing student grades, optimized for use
 4. Copy the file to the folder you want to use as the home folder for your ChatGPat.
 5. Open a terminal, `cd` to the folder containing the JAR file, and run `java -jar chatgpat.jar`.
 6. The ChatGPat banner and a command prompt (`>`) should appear in the terminal.
-7. Type a command in the command box and press Enter to execute it. For example, type `help` and press Enter to open the help window.
+7. Type a command at the prompt and press Enter to execute it. For example, type `help` and press Enter to display the command summary in the terminal.
 8. Refer to the [Features](#features) section below for details of each command.
 
 ## Features
@@ -27,9 +27,21 @@ ChatGPat is a desktop application for managing student grades, optimized for use
 
 ### Viewing help: `help`
 
-Shows a summary of all available commands.
+Shows a summary of all currently available commands in the terminal, then returns to the command prompt.
 
 **Format:** `help`
+
+**Expected output:**
+
+```text
+Available commands:
+  help     - Show this command summary.
+  gpa      - Show GPA, excluding SU-ed modules and non-GPA grades.
+  su INDEX - Apply SU to a module and show the remaining SU quota.
+  exit     - Exit ChatGPat.
+
+INDEX is the module's position in your records, starting from 1.
+```
 
 ### Adding a module: `add`
 
@@ -139,6 +151,6 @@ Shows the remaining SU quota. Lists out all the current SU-ed modules.
 
 ### Exiting the program: `exit`
 
-Exits ChatGPat.
+Prints `Goodbye!` and exits ChatGPat.
 
 **Format:** `exit`
