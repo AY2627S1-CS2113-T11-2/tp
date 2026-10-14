@@ -3,6 +3,7 @@ package seedu.chatgpat.student;
 import java.util.ArrayList;
 import java.util.logging.Logger;
 
+import seedu.chatgpat.exception.EditException;
 import seedu.chatgpat.exception.GpaException;
 import seedu.chatgpat.exception.InvalidIndexException;
 import seedu.chatgpat.exception.SuException;
@@ -190,5 +191,44 @@ public class Student {
         double gpa = totalGradePoints / totalCredits;
         assert gpa >= 0.0 && gpa <= 5.0 : "GPA should be within [0, 5]";
         return gpa;
+    }
+
+    /**
+     * Edits the module at the given 1-based index.
+     * A null argument leaves the corresponding field unchanged.
+     *
+     * @param  index     The 1-based index of the module to edit.
+     * @param  newCode   The new module code, or null to keep the current one.
+     * @param  newCredit The new credit value, or null to keep the current one.
+     * @param  newGrade  The new grade, or null to keep the current one.
+     * @return           The edited module.
+     * @throws InvalidIndexException
+     *         If the index is out of range.
+     * @throws EditException
+     *         If no field is given, the credit is not positive, or the new code already exists.
+     */
+    public Module editModule(int index, String newCode, Integer newCredit, Grade newGrade) {
+        Module module = getModule(index);
+        if (newCode == null && newCredit == null && newGrade == null) {
+            throw new EditException("Provide at least one field to edit.");
+        }
+        if (newCredit != null && newCredit <= 0) {
+            throw new EditException("Credits must be a positive integer.");
+        }
+        if (newCode != null && !newCode.equalsIgnoreCase(module.getModuleCode())
+                && isModuleExists(moduleList, newCode)) {
+            throw new EditException("Module already exists: " + newCode);
+        }
+
+        if (newCode != null) {
+            module.setModuleCode(newCode);
+        }
+        if (newCredit != null) {
+            module.setCredit(newCredit);
+        }
+        if (newGrade != null) {
+            module.setGrade(newGrade);
+        }
+        return module;
     }
 }
