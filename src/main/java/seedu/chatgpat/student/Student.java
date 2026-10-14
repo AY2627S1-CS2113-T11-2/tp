@@ -1,8 +1,16 @@
 package seedu.chatgpat.student;
 
 import java.util.ArrayList;
+import java.util.logging.Logger;
+
+import seedu.chatgpat.exception.GpaException;
+import seedu.chatgpat.exception.InvalidIndexException;
+import seedu.chatgpat.exception.SuException;
 
 public class Student {
+    private static final Logger logger =
+        Logger.getLogger(Student.class.getName());
+
     private String name;
     private String id;
     private ArrayList<Module> moduleList = new ArrayList<Module>();
@@ -75,5 +83,115 @@ public class Student {
                 + " (" + removed.getCredit() + " MCs, Grade: " + removed.getGrade().getLabel() + ")");
         System.out.println("You now have " + moduleList.size() + " module"
                 + (moduleList.size() == 1 ? "" : "s") + " recorded.");
+    }
+
+    /**
+     * Returns the module at the given 1-based index.
+     *
+     * @param  index The 1-based index of the module.
+     * @return       The module at the given index.
+     * @throws InvalidIndexException
+     *         If the index is out of range.
+     */
+    public Module getModule(int index) {
+        if (index < 1 || index > moduleList.size()) {
+            logger.warning(() -> String.format(
+                    "Rejected getModule(%d); module list size is %d",
+                    index, moduleList.size()));
+            throw new InvalidIndexException(index, moduleList.size());
+        }
+        Module module = moduleList.get(index - 1);
+        assert module != null : "Module at a valid index should not be null";
+        return module;
+    }
+
+    /**
+     * Returns the total modular credits currently SU-ed.
+     *
+     * @return The total SU-ed modular credits.
+     */
+    public int getUsedSuMcs() {
+        int total = 0;
+        for (Module module : moduleList) {
+            if (module.isSu()) {
+                total += module.getCredit();
+            }
+        }
+        return total;
+    }
+
+    /**
+     * Returns the remaining SU quota in modular credits.
+     *
+     * @return The remaining SU quota.
+     */
+    public int getRemainingSuQuota() {
+        return suQuota - getUsedSuMcs();
+    }
+
+    /**
+     * Applies SU on the module at the given 1-based index.
+     * The module is excluded from GPA calculation afterwards.
+     *
+     * @param  index The 1-based index of the module to SU.
+     * @return       The module that was SU-ed.
+     * @throws InvalidIndexException
+     *         If the index is out of range.
+     * @throws SuException
+     *         If the module is already SU-ed, or if the remaining quota is insufficient.
+     */
+    public Module applySu(int index) {
+        Module module = getModule(index);
+        if (module.isSu()) {
+            logger.warning(() -> String.format(
+                    "Rejected SU on module %d (%s): already SU-ed",
+                    index, module.getModuleCode()));
+            throw new SuException(String.format(
+                    "Module %d is already SU-ed.", index));
+        }
+        int remainingQuota = getRemainingSuQuota();
+        if (module.getCredit() > remainingQuota) {
+            logger.warning(() -> String.format(
+                    "Rejected SU on module %d (%s): needs %d MCs but only %d left",
+                    index, module.getModuleCode(),
+                    module.getCredit(), remainingQuota));
+            throw new SuException(String.format(
+                    "Insufficient SU quota. Remaining: %d MCs, required: %d MCs.",
+                    remainingQuota, module.getCredit()));
+        }
+        module.setSu(true);
+        assert module.isSu() : "Module should be SU-ed after applySu";
+        return module;
+    }
+
+    /**
+     * Calculates the student's GPA, excluding modules that do not affect
+     * GPA (SU-ed modules, and modules with grades such as CS or CU).
+     *
+     * @return The calculated GPA.
+     * @throws GpaException If no module contributes to GPA.
+     */
+    public double calculateGpa() {
+        double totalGradePoints = 0.0;
+        int totalCredits = 0;
+        for (Module module : moduleList) {
+            if (module.isSu()) {
+                continue;
+            }
+            Grade grade = module.getGrade();
+            if (!grade.isAffectsGpa()) {
+                continue;
+            }
+            totalGradePoints += grade.getGradePoint() * module.getCredit();
+            totalCredits += module.getCredit();
+        }
+        if (totalCredits == 0) {
+            logger.warning("Rejected GPA calculation: no module contributes to GPA");
+            throw new GpaException(
+                    "No modules contribute to GPA. Add a graded module first.");
+        }
+        double gpa = totalGradePoints / totalCredits;
+        assert gpa >= 0.0 && gpa <= 5.0 : "GPA should be within [0, 5]";
+        return gpa;
     }
 }
