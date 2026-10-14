@@ -70,20 +70,17 @@ public class Student {
     }
 
     /**
-     * Deletes the module at the given position in the displayed module list.
+     * Deletes the module at the given 1-based index.
      *
-     * @param index Position of the module as shown by printModuleList, starting from 1.
+     * @param  index The 1-based index of the module to delete.
+     * @return       The module that was deleted.
+     * @throws InvalidIndexException
+     *         If the index is out of range.
      */
-    public void deleteModule(int index) {
-        if (index < 1 || index > moduleList.size()) {
-            System.out.println("Invalid module index: " + index);
-            return;
-        }
-        Module removed = moduleList.remove(index - 1);
-        System.out.println("Removed module: " + removed.getModuleCode()
-                + " (" + removed.getCredit() + " MCs, Grade: " + removed.getGrade().getLabel() + ")");
-        System.out.println("You now have " + moduleList.size() + " module"
-                + (moduleList.size() == 1 ? "" : "s") + " recorded.");
+    public Module deleteModule(int index) {
+        Module module = getModule(index);
+        moduleList.remove(index - 1);
+        return module;
     }
 
     /**
