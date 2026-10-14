@@ -170,7 +170,7 @@ public class Student {
     public int getModuleCount() {
         return moduleList.size();
     }
-  
+
     /**
      * Removes SU on the module at the given 1-based index.
      * The module is included into GPA calculation afterwards.
@@ -195,7 +195,7 @@ public class Student {
         assert !module.isSu() : "Module should not be SU-ed after removeSu";
         return module;
     }
-  
+
     /**
      * Calculates the student's GPA, excluding modules that do not affect
      * GPA (SU-ed modules, and modules with grades such as CS or CU).
