@@ -163,6 +163,15 @@ public class Student {
     }
 
     /**
+     * Returns the number of modules currently recorded.
+     *
+     * @return The module count.
+     */
+    public int getModuleCount() {
+        return moduleList.size();
+    }
+  
+    /**
      * Removes SU on the module at the given 1-based index.
      * The module is included into GPA calculation afterwards.
      *
