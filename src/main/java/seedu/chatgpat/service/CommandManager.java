@@ -11,6 +11,7 @@ import seedu.chatgpat.command.module.DeleteCommand;
 import seedu.chatgpat.command.module.EditCommand;
 import seedu.chatgpat.command.module.GpaCommand;
 import seedu.chatgpat.command.module.SuCommand;
+import seedu.chatgpat.command.module.UnsuCommand;
 import seedu.chatgpat.exception.UnknownCommandException;
 import seedu.chatgpat.parser.Parser;
 import seedu.chatgpat.student.Student;
@@ -32,6 +33,8 @@ public class CommandManager {
             ExitCommand::parse,
             HelpCommand::parse,
             SuCommand::parse,
+            UnsuCommand::parse,
+            GpaCommand::parse,
             GpaCommand::parse,
             DeleteCommand::parse,
             EditCommand::parse

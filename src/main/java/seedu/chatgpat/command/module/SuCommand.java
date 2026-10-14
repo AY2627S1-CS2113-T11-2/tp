@@ -15,7 +15,7 @@ import seedu.chatgpat.student.Student;
 public class SuCommand extends Command {
     private static final Pattern PATTERN = Pattern.compile("su\\s+(\\d+)");
     private static final String MESSAGE_SUCCESS =
-            "Applied SU on module %d: %s%nRemaining SU quota: %d MCs.";
+            "Applied SU on module %d: %s\nRemaining SU quota: %d MCs.";
 
     private final int index;
 
