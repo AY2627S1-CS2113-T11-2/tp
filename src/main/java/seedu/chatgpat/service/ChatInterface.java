@@ -35,14 +35,18 @@ public class ChatInterface {
 
     /**
      * Formats and prints the response answering user input.
+     * Prints another command prompt only when the application will keep running.
      *
      * @param response The response answering user input.
      */
     public void printResponse(Response response) {
         if (response.hasModule()) {
-            System.out.print("\n" + response.message() + "\n  " + response.module() + "\n" + DIVIDER);
+            System.out.print("\n" + response.message() + "\n  " + response.module() + "\n");
         } else {
-            System.out.print("\n" + response.message() + "\n" + DIVIDER);
+            System.out.print("\n" + response.message() + "\n");
+        }
+        if (!response.isExit()) {
+            System.out.print(DIVIDER);
         }
     }
 

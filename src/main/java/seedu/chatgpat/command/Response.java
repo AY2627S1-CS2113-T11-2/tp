@@ -7,8 +7,9 @@ import seedu.chatgpat.student.Module;
  *
  * @param message The main message.
  * @param module  The module attached.
+ * @param isExit  Whether the application should exit after printing this response.
  */
-public record Response(String message, Module module) {
+public record Response(String message, Module module, boolean isExit) {
 
     /**
      * Constructs a new Response without a module attached.
@@ -17,6 +18,16 @@ public record Response(String message, Module module) {
      */
     public Response(String message) {
         this(message, null);
+    }
+
+    /**
+     * Constructs a response that keeps the application running.
+     *
+     * @param message The main message.
+     * @param module  The module attached, or null if there is no attachment.
+     */
+    public Response(String message, Module module) {
+        this(message, module, false);
     }
 
     /**

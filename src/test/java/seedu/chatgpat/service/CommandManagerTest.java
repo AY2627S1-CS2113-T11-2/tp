@@ -1,7 +1,9 @@
 package seedu.chatgpat.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 import java.util.Optional;
@@ -44,6 +46,48 @@ public class CommandManagerTest {
 
         Response response = manager.processQuery("dummy");
         assertEquals("dummy executed", response.message());
+        assertFalse(response.isExit());
+    }
+
+    @Test
+    public void processQuery_exitCommand_requestsExit() {
+        CommandManager manager = new CommandManager(new Student());
+
+        Response response = manager.processQuery("exit");
+
+        assertTrue(response.isExit());
+        assertEquals("Goodbye!", response.message());
+    }
+
+    @Test
+    public void processQuery_helpCommand_listsAvailableCommandsAndKeepsRunning() {
+        CommandManager manager = new CommandManager(new Student());
+
+        Response response = manager.processQuery("help");
+
+        assertTrue(response.message().contains("help     -"));
+        assertTrue(response.message().contains("gpa      -"));
+        assertTrue(response.message().contains("su INDEX -"));
+        assertTrue(response.message().contains("exit     -"));
+        assertFalse(response.isExit());
+        assertFalse(response.hasModule());
+    }
+
+    @Test
+    public void processQuery_helpWithExtraArguments_returnsSameSummary() {
+        CommandManager manager = new CommandManager(new Student());
+        Response expected = manager.processQuery("help");
+
+        assertEquals(expected, manager.processQuery("help 123"));
+        assertEquals(expected, manager.processQuery("help\tanything"));
+    }
+
+    @Test
+    public void processQuery_helpLikeWord_throwsUnknownCommandException() {
+        CommandManager manager = new CommandManager(new Student());
+
+        assertThrows(UnknownCommandException.class, () -> manager.processQuery("helpful"));
+        assertThrows(UnknownCommandException.class, () -> manager.processQuery("help123"));
     }
 
     /**
