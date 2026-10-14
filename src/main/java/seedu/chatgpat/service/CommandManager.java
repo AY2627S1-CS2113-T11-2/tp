@@ -6,6 +6,8 @@ import java.util.Optional;
 import seedu.chatgpat.command.Command;
 import seedu.chatgpat.command.Response;
 import seedu.chatgpat.command.module.QuotaCommand;
+import seedu.chatgpat.command.module.DeleteCommand;
+import seedu.chatgpat.command.module.EditCommand;
 import seedu.chatgpat.command.module.GpaCommand;
 import seedu.chatgpat.command.module.SuCommand;
 import seedu.chatgpat.exception.UnknownCommandException;
@@ -29,6 +31,9 @@ public class CommandManager {
             SuCommand::parse,
             QuotaCommand::parse,
             GpaCommand::parse
+            GpaCommand::parse,
+            DeleteCommand::parse,
+            EditCommand::parse
         ));
     }
 
