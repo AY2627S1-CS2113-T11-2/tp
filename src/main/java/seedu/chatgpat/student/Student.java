@@ -3,6 +3,7 @@ package seedu.chatgpat.student;
 import java.util.ArrayList;
 import java.util.logging.Logger;
 
+import seedu.chatgpat.exception.DuplicateModuleException;
 import seedu.chatgpat.exception.EditException;
 import seedu.chatgpat.exception.GpaException;
 import seedu.chatgpat.exception.InvalidIndexException;
@@ -47,10 +48,18 @@ public class Student {
         return false;
     }
 
-    public void addingModule(Module module) {
-        if(isModuleExists(moduleList,module.getModuleCode())) {
-            System.out.println("Module already exists!");
-            return;
+    /**
+     * Adds a module to the student's record.
+     *
+     * @param  module The module to add.
+     * @throws DuplicateModuleException
+     *         If a module with the same code already exists.
+     */
+    public void addModule(Module module) throws DuplicateModuleException {
+        if (isModuleExists(moduleList, module.getModuleCode())) {
+            logger.warning(() -> String.format(
+                    "Rejected adding duplicate module: %s", module.getModuleCode()));
+            throw new DuplicateModuleException(module.getModuleCode());
         }
         moduleList.add(module);
     }

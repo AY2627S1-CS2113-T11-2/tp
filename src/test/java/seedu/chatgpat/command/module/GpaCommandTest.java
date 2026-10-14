@@ -72,7 +72,7 @@ public class GpaCommandTest {
     @Test
     public void execute_onlySuModules_throwsGpaException() {
         Student student = new Student();
-        student.addingModule(module("CS2113", 4, Grade.A));
+        student.addModule(module("CS2113", 4, Grade.A));
         student.applySu(1);
         Command command = GpaCommand.parse("gpa").orElseThrow();
         assertThrows(GpaException.class, () -> command.execute(student));
@@ -84,7 +84,7 @@ public class GpaCommandTest {
     @Test
     public void execute_singleModuleWithA_returnsFivePointZero() {
         Student student = new Student();
-        student.addingModule(module("CS2113", 4, Grade.A));
+        student.addModule(module("CS2113", 4, Grade.A));
         Command command = GpaCommand.parse("gpa").orElseThrow();
         Response response = command.execute(student);
         assertTrue(response.message().contains("5.00"));
@@ -96,9 +96,9 @@ public class GpaCommandTest {
     @Test
     public void execute_mixedGrades_returnsWeightedAverage() {
         Student student = new Student();
-        student.addingModule(module("CS2113", 4, Grade.A));   // 5.0 * 4 = 20
-        student.addingModule(module("MA1521", 4, Grade.B));   // 3.5 * 4 = 14
-        student.addingModule(module("ST2334", 2, Grade.A_MINUS)); // 4.5 * 2 = 9
+        student.addModule(module("CS2113", 4, Grade.A));   // 5.0 * 4 = 20
+        student.addModule(module("MA1521", 4, Grade.B));   // 3.5 * 4 = 14
+        student.addModule(module("ST2334", 2, Grade.A_MINUS)); // 4.5 * 2 = 9
         // total = 43 / 10 = 4.30
         Command command = GpaCommand.parse("gpa").orElseThrow();
         Response response = command.execute(student);
@@ -111,8 +111,8 @@ public class GpaCommandTest {
     @Test
     public void execute_suModuleExcludedFromGpa() {
         Student student = new Student();
-        student.addingModule(module("CS2113", 4, Grade.A));
-        student.addingModule(module("MA1521", 4, Grade.F));
+        student.addModule(module("CS2113", 4, Grade.A));
+        student.addModule(module("MA1521", 4, Grade.F));
         student.applySu(2);
         // Only CS2113 counts: GPA = 5.00
         Command command = GpaCommand.parse("gpa").orElseThrow();
@@ -126,8 +126,8 @@ public class GpaCommandTest {
     @Test
     public void execute_nonGpaGradeExcluded() {
         Student student = new Student();
-        student.addingModule(module("CS2113", 4, Grade.A));
-        student.addingModule(module("GEQ1000", 4, Grade.CS));
+        student.addModule(module("CS2113", 4, Grade.A));
+        student.addModule(module("GEQ1000", 4, Grade.CS));
         Command command = GpaCommand.parse("gpa").orElseThrow();
         Response response = command.execute(student);
         assertTrue(response.message().contains("5.00"));

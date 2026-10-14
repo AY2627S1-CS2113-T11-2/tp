@@ -7,6 +7,7 @@ import seedu.chatgpat.command.Command;
 import seedu.chatgpat.command.ExitCommand;
 import seedu.chatgpat.command.HelpCommand;
 import seedu.chatgpat.command.Response;
+import seedu.chatgpat.command.module.AddCommand;
 import seedu.chatgpat.command.module.DeleteCommand;
 import seedu.chatgpat.command.module.EditCommand;
 import seedu.chatgpat.command.module.GpaCommand;
@@ -35,6 +36,7 @@ public class CommandManager {
             ListCommand::parse,
             ExitCommand::parse,
             HelpCommand::parse,
+            AddCommand::parse,
             SuCommand::parse,
             QuotaCommand::parse,
             UnsuCommand::parse,
