@@ -162,4 +162,13 @@ public class Student {
         assert module.isSu() : "Module should be SU-ed after applySu";
         return module;
     }
+
+    /**
+     * Returns the number of modules currently recorded.
+     *
+     * @return The module count.
+     */
+    public int getModuleCount() {
+        return moduleList.size();
+    }
 }
