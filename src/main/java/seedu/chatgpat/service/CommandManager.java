@@ -30,7 +30,7 @@ public class CommandManager {
         this(student, List.of(
             SuCommand::parse,
             UnsuCommand::parse,
-            GpaCommand::parse
+            GpaCommand::parse,
             GpaCommand::parse,
             DeleteCommand::parse,
             EditCommand::parse
