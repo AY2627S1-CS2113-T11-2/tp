@@ -54,8 +54,8 @@ public class ModuleListTest {
     @Test
     public void listModules_nonEmptyList_printsFormattedModules() {
         Student student = new Student("Jerry", "0001", 32);
-        student.addingModule(new Module("CS2113", "test", "none", 4, Grade.A_MINUS, true));
-        student.addingModule(new Module("MA1521", "test", "none", 4, Grade.B_PLUS, true));
+        student.addModule(new Module("CS2113", "test", "none", 4, Grade.A_MINUS, true));
+        student.addModule(new Module("MA1521", "test", "none", 4, Grade.B_PLUS, true));
 
         student.printModuleList();
 

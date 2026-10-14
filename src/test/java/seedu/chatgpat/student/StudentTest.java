@@ -20,8 +20,8 @@ public class StudentTest {
     @BeforeEach
     public void setUp() {
         student = new Student("Jerry", "0001", 32);
-        student.addingModule(new Module("CS2113", "test", "none", 4, Grade.A_MINUS, false));
-        student.addingModule(new Module("MA1521", "test", "none", 4, Grade.B_PLUS, false));
+        student.addModule(new Module("CS2113", "test", "none", 4, Grade.A_MINUS, false));
+        student.addModule(new Module("MA1521", "test", "none", 4, Grade.B_PLUS, false));
     }
 
     @Test

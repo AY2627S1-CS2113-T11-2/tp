@@ -40,7 +40,7 @@ public class DeleteCommandTest {
     @Test
     public void execute_validIndex_returnsResponseWithRemovedModule() {
         Student student = new Student();
-        student.addingModule(new Module("CS2113", "test", "none", 4, Grade.A_MINUS, false));
+        student.addModule(new Module("CS2113", "test", "none", 4, Grade.A_MINUS, false));
 
         Response response = new DeleteCommand(1).execute(student);
 
@@ -51,7 +51,7 @@ public class DeleteCommandTest {
     @Test
     public void execute_validIndex_removesModuleFromStudent() {
         Student student = new Student();
-        student.addingModule(new Module("CS2113", "test", "none", 4, Grade.A_MINUS, false));
+        student.addModule(new Module("CS2113", "test", "none", 4, Grade.A_MINUS, false));
 
         new DeleteCommand(1).execute(student);
 

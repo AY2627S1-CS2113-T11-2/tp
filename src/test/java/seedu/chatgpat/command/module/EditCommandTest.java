@@ -45,7 +45,7 @@ public class EditCommandTest {
     @Test
     public void execute_validEdit_returnsResponseWithEditedModule() {
         Student student = new Student();
-        student.addingModule(new Module("CS2113", "test", "none", 4, Grade.A_MINUS, false));
+        student.addModule(new Module("CS2113", "test", "none", 4, Grade.A_MINUS, false));
 
         Response response = new EditCommand(1, null, 5, Grade.B_PLUS).execute(student);
 

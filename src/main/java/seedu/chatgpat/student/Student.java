@@ -3,6 +3,7 @@ package seedu.chatgpat.student;
 import java.util.ArrayList;
 import java.util.logging.Logger;
 
+import seedu.chatgpat.exception.DuplicateModuleException;
 import seedu.chatgpat.exception.EditException;
 import seedu.chatgpat.exception.GpaException;
 import seedu.chatgpat.exception.InvalidIndexException;
@@ -47,10 +48,18 @@ public class Student {
         return false;
     }
 
-    public void addingModule(Module module) {
-        if(isModuleExists(moduleList,module.getModuleCode())) {
-            System.out.println("Module already exists!");
-            return;
+    /**
+     * Adds a module to the student's record.
+     *
+     * @param  module The module to add.
+     * @throws DuplicateModuleException
+     *         If a module with the same code already exists.
+     */
+    public void addModule(Module module) throws DuplicateModuleException {
+        if (isModuleExists(moduleList, module.getModuleCode())) {
+            logger.warning(() -> String.format(
+                    "Rejected adding duplicate module: %s", module.getModuleCode()));
+            throw new DuplicateModuleException(module.getModuleCode());
         }
         moduleList.add(module);
     }
@@ -170,7 +179,7 @@ public class Student {
     public int getModuleCount() {
         return moduleList.size();
     }
-  
+
     /**
      * Removes SU on the module at the given 1-based index.
      * The module is included into GPA calculation afterwards.
@@ -195,7 +204,7 @@ public class Student {
         assert !module.isSu() : "Module should not be SU-ed after removeSu";
         return module;
     }
-  
+
     /**
      * Calculates the student's GPA, excluding modules that do not affect
      * GPA (SU-ed modules, and modules with grades such as CS or CU).
