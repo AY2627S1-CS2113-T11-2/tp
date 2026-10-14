@@ -162,4 +162,29 @@ public class Student {
         assert module.isSu() : "Module should be SU-ed after applySu";
         return module;
     }
+
+    /**
+     * Removes SU on the module at the given 1-based index.
+     * The module is included into GPA calculation afterwards.
+     *
+     * @param  index The 1-based index of the module to SU.
+     * @return       The module that has SU removed.
+     * @throws InvalidIndexException
+     *         If the index is out of range.
+     * @throws SuException
+     *         If the module is already not SU-ed.
+     */
+    public Module removeSu(int index) {
+        Module module = getModule(index);
+        if (!module.isSu()) {
+            logger.warning(() -> String.format(
+                    "Rejected removing SU on module %d (%s): already not SU-ed",
+                    index, module.getModuleCode()));
+            throw new SuException(String.format(
+                    "Module %d is already not SU-ed.", index));
+        }
+        module.setSu(false);
+        assert !module.isSu() : "Module should not be SU-ed after removeSu";
+        return module;
+    }
 }
