@@ -3,6 +3,7 @@ package seedu.chatgpat.student;
 import java.util.ArrayList;
 import java.util.logging.Logger;
 
+import seedu.chatgpat.exception.GpaException;
 import seedu.chatgpat.exception.InvalidIndexException;
 import seedu.chatgpat.exception.SuException;
 
@@ -161,5 +162,36 @@ public class Student {
         module.setSu(true);
         assert module.isSu() : "Module should be SU-ed after applySu";
         return module;
+    }
+
+    /**
+     * Calculates the student's GPA, excluding modules that do not affect
+     * GPA (SU-ed modules, and modules with grades such as CS or CU).
+     *
+     * @return The calculated GPA.
+     * @throws GpaException If no module contributes to GPA.
+     */
+    public double calculateGpa() {
+        double totalGradePoints = 0.0;
+        int totalCredits = 0;
+        for (Module module : moduleList) {
+            if (module.isSu()) {
+                continue;
+            }
+            Grade grade = module.getGrade();
+            if (!grade.isAffectsGpa()) {
+                continue;
+            }
+            totalGradePoints += grade.getGradePoint() * module.getCredit();
+            totalCredits += module.getCredit();
+        }
+        if (totalCredits == 0) {
+            logger.warning("Rejected GPA calculation: no module contributes to GPA");
+            throw new GpaException(
+                    "No modules contribute to GPA. Add a graded module first.");
+        }
+        double gpa = totalGradePoints / totalCredits;
+        assert gpa >= 0.0 && gpa <= 5.0 : "GPA should be within [0, 5]";
+        return gpa;
     }
 }
