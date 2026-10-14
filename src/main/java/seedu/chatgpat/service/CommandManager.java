@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Optional;
 
 import seedu.chatgpat.command.Command;
+import seedu.chatgpat.command.ExitCommand;
 import seedu.chatgpat.command.Response;
 import seedu.chatgpat.command.module.GpaCommand;
 import seedu.chatgpat.command.module.SuCommand;
@@ -25,6 +26,7 @@ public class CommandManager {
      */
     public CommandManager(Student student) {
         this(student, List.of(
+            ExitCommand::parse,
             SuCommand::parse,
             GpaCommand::parse
         ));

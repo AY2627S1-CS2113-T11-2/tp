@@ -1,7 +1,9 @@
 package seedu.chatgpat.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 import java.util.Optional;
@@ -44,6 +46,17 @@ public class CommandManagerTest {
 
         Response response = manager.processQuery("dummy");
         assertEquals("dummy executed", response.message());
+        assertFalse(response.isExit());
+    }
+
+    @Test
+    public void processQuery_exitCommand_requestsExit() {
+        CommandManager manager = new CommandManager(new Student());
+
+        Response response = manager.processQuery("exit");
+
+        assertTrue(response.isExit());
+        assertEquals("Goodbye!", response.message());
     }
 
     /**

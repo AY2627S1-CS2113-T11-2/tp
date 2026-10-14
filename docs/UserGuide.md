@@ -139,6 +139,6 @@ Shows the remaining SU quota. Lists out all the current SU-ed modules.
 
 ### Exiting the program: `exit`
 
-Exits ChatGPat.
+Prints `Goodbye!` and exits ChatGPat.
 
 **Format:** `exit`
