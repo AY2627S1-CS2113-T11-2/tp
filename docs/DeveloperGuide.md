@@ -177,19 +177,20 @@ The following sequence diagram shows how the `delete 2` command is processed.
 
 ```mermaid
 sequenceDiagram
-    participant CM as CommandManager
-    participant DC as DeleteCommand
-    participant S as Student
+  participant CM as :CommandManager
+  participant DC as DeleteCommand
+  participant S as :Student
 
-    CM->>DC: parse("delete 2")
-    create participant D as :DeleteCommand
-    DC->>D: new DeleteCommand(2)
-    DC-->>CM: Optional.of(command)
+  CM->>DC: parse("delete 2")
+  create participant D as :DeleteCommand
+  DC->>D: new DeleteCommand(2)
+  DC-->>CM: Optional.of(command)
 
-    CM->>D: execute(student)
-    D->>S: deleteModule(2)
-    S-->>D: removed module
-    D-->>CM: Response("Removed module 2:", module)
+  CM->>D: execute(student)
+  D->>S: deleteModule(2)
+  S->>S: getModule(2)
+  S-->>D: removed module
+  D-->>CM: Response("Removed module 2:", module)
 ```
 
 **Note:** If the index is out of range, `deleteModule` throws `InvalidIndexException` before anything is removed, so no data changes. Because the modules after the deleted one move up by one, the user should run `list` again before using another index.
@@ -236,27 +237,28 @@ The following sequence diagram shows how the `edit 2 c/5 g/A` command is process
 
 ```mermaid
 sequenceDiagram
-    participant CM as CommandManager
-    participant EC as EditCommand
-    participant S as Student
-    participant M as Module
+  participant CM as :CommandManager
+  participant EC as EditCommand
+  participant S as :Student
+  participant M as :Module
 
-    CM->>EC: parse("edit 2 c/5 g/A")
-    create participant E as :EditCommand
-    EC->>E: new EditCommand(2, null, 5, A)
-    EC-->>CM: Optional.of(command)
+  CM->>EC: parse("edit 2 c/5 g/A")
+  Note over EC: throws EditException if the input is malformed
+  create participant E as :EditCommand
+  EC->>E: new EditCommand(2, null, 5, A)
+  EC-->>CM: Optional.of(command)
 
-    CM->>E: execute(student)
-    E->>S: editModule(2, null, 5, A)
-    alt all checks pass
-        S->>M: setCredit(5)
-        S->>M: setGrade(A)
-        S-->>E: edited module
-        E-->>CM: Response("Updated module 2:", module)
-    else a check fails
-        S-->>E: throws InvalidIndexException or EditException
-        E-->>CM: exception propagates to ChatGpat
-    end
+  CM->>E: execute(student)
+  E->>S: editModule(2, null, 5, A)
+  alt all checks pass
+    S->>M: setCredit(5)
+    S->>M: setGrade(A)
+    S-->>E: edited module
+    E-->>CM: Response("Updated module 2:", module)
+  else a check fails
+    S-->>E: throws InvalidIndexException or EditException
+    E-->>CM: exception propagates up
+  end
 ```
 
 Similarly, how `Student#editModule` works inside the `Domain` layer is shown below.
@@ -283,16 +285,16 @@ The following activity diagram shows the checks that `editModule` makes before i
 
 ```mermaid
 flowchart TD
-    A([editModule called]) --> B{index in range?}
-    B -- no --> X1[throw InvalidIndexException]
-    B -- yes --> C{at least one field given?}
-    C -- no --> X2[throw EditException]
-    C -- yes --> D{credits positive?}
-    D -- no --> X2
-    D -- yes --> E{new code used by another module?}
-    E -- yes --> X2
-    E -- no --> F[apply the given fields to the module]
-    F --> G([return edited module])
+  A([editModule<br/>called]) --> B{index<br/>in range?}
+  B -- no --> X1[throw<br/>InvalidIndex<br/>Exception]
+  B -- yes --> C{at least one<br/>field given?}
+  C -- no --> X2[throw<br/>EditException]
+  C -- yes --> D{credits<br/>positive?}
+  D -- no --> X2
+  D -- yes --> E{new code used<br/>by another<br/>module?}
+  E -- yes --> X2
+  E -- no --> F[apply the<br/>given fields]
+  F --> G([return<br/>edited module])
 ```
 
 **Note:** All checks happen before any setter is called, so a rejected edit never leaves a module half-edited.
@@ -325,28 +327,30 @@ The proposed plan feature lets the user place a module in a year and semester. I
 
 ```mermaid
 classDiagram
-    class Student {
-        +getModule(int) Module
-        +planModule(int, Semester) Module
-    }
-    class Module {
-        -String moduleCode
-        -int credit
-        -Grade grade
-        -boolean isSuApplied
-        -Semester semester
-        +getSemester() Semester
-        +setSemester(Semester)
-    }
-    class Semester {
-        <<record>>
-        +year() int
-        +term() int
-        +toString() String
-    }
+  class Student {
+    +getModule(int) Module
+    +planModule(int, Semester) Module
+  }
+  class Module {
+    -String moduleCode
+    -int credit
+    -boolean isSuApplied
+    +getSemester() Semester
+    +setSemester(Semester)
+  }
+  class Semester {
+    <<record>>
+    +year() int
+    +term() int
+    +toString() String
+  }
+  class Grade {
+    <<enumeration>>
+  }
 
-    Student --> "0..*" Module : moduleList
-    Module --> "0..1" Semester : semester
+  Student --> "0..*" Module : moduleList
+  Module --> "1" Grade : grade
+  Module --> "0..1" Semester : semester
 ```
 
 * `Semester` — an immutable record of a year (1 to 4) and a semester number (1 or 2). Its constructor throws `PlanException` for out-of-range values, so an invalid `Semester` cannot exist. `toString` gives the form `Y2S1`.
@@ -366,29 +370,29 @@ The following sequence diagram shows how the `plan 1 y/2 s/1` command goes throu
 
 ```mermaid
 sequenceDiagram
-    participant Main as :ChatGpat
-    box LightBlue Dispatch
-        participant CM as :CommandManager
-        participant PC as PlanCommand
-        participant P as :PlanCommand
-    end
-    box LightCoral Domain
-        participant S as :Student
-        participant M as :Module
-    end
+  participant Main as :ChatGpat
+  box LightBlue Dispatch
+    participant CM as :CommandManager
+  end
+  participant PC as PlanCommand
+  participant P as :PlanCommand
+  box LightCoral Domain
+    participant S as :Student
+    participant M as :Module
+  end
 
-    Main->>+CM: processQuery("plan 1 y/2 s/1")
-    CM->>+PC: parse("plan 1 y/2 s/1")
-    PC->>P: new PlanCommand(1, semester)
-    PC-->>-CM: Optional.of(command)
-    CM->>+P: execute(student)
-    P->>+S: planModule(1, semester)
-    S->>S: getModule(1)
-    S->>+M: setSemester(semester)
-    M-->>-S: ok
-    S-->>-P: module
-    P-->>-CM: Response
-    CM-->>-Main: Response
+  Main->>+CM: processQuery("plan 1 y/2 s/1")
+  CM->>+PC: parse("plan 1 y/2 s/1")
+  PC->>P: new PlanCommand(1, semester)
+  PC-->>-CM: Optional.of(command)
+  CM->>+P: execute(student)
+  P->>+S: planModule(1, semester)
+  S->>S: getModule(1)
+  S->>+M: setSemester(semester)
+  M-->>-S: ok
+  S-->>-P: module
+  P-->>-CM: Response
+  CM-->>-Main: Response
 ```
 
 **Note:** The `Semester` object is created inside `PlanCommand#parse` and is not shown, to keep the diagram simple. If the index is out of range, `getModule` throws `InvalidIndexException`. If the year or semester is invalid, the `Semester` constructor throws `PlanException`. In both cases nothing is changed.
@@ -452,27 +456,30 @@ The following sequence diagram shows how `unplan 1` would be processed.
 
 ```mermaid
 sequenceDiagram
-    participant CM as CommandManager
-    participant UC as UnplanCommand
-    participant S as Student
-    participant M as Module
+  participant CM as :CommandManager
+  participant UC as UnplanCommand
+  participant S as :Student
+  participant M as :Module
 
-    CM->>UC: parse("unplan 1")
-    create participant U as :UnplanCommand
-    UC->>U: new UnplanCommand(1)
-    UC-->>CM: Optional.of(command)
+  CM->>UC: parse("unplan 1")
+  create participant U as :UnplanCommand
+  UC->>U: new UnplanCommand(1)
+  UC-->>CM: Optional.of(command)
 
-    CM->>U: execute(student)
-    U->>S: unplanModule(1)
-    alt module has a semester
-        S->>M: setSemester(null)
-        S-->>U: unplanned module
-        U-->>CM: Response("Removed module 1 from its semester plan:", module)
-    else module has no semester
-        S-->>U: throws PlanException
-        U-->>CM: exception propagates to ChatGpat
-    end
+  CM->>U: execute(student)
+  U->>S: unplanModule(1)
+  S->>S: getModule(1)
+  alt module has a semester
+    S->>M: setSemester(null)
+    S-->>U: unplanned module
+    U-->>CM: Response("Removed module 1 from its semester plan:", module)
+  else module has no semester
+    S-->>U: throws PlanException
+    U-->>CM: exception propagates up
+  end
 ```
+
+**Note:** If the index is out of range, `getModule` throws `InvalidIndexException`, and nothing is changed.
 
 #### Design considerations
 
