@@ -27,8 +27,10 @@ public class ChatGpat {
      * Starts the new ChatGpat program.
      */
     public static void main(String[] args) {
+        //assert false : "dummy assertion set to fail";
         ChatGpat chatGpat = new ChatGpat();
         chatGpat.run();
+
     }
 
     /**

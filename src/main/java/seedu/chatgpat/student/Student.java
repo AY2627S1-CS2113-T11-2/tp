@@ -3,11 +3,7 @@ package seedu.chatgpat.student;
 import java.util.ArrayList;
 import java.util.logging.Logger;
 
-import seedu.chatgpat.exception.DuplicateModuleException;
-import seedu.chatgpat.exception.EditException;
-import seedu.chatgpat.exception.GpaException;
-import seedu.chatgpat.exception.InvalidIndexException;
-import seedu.chatgpat.exception.SuException;
+import seedu.chatgpat.exception.*;
 
 public class Student {
     private static final Logger logger =
@@ -64,10 +60,14 @@ public class Student {
         moduleList.add(module);
     }
 
+    /**
+     * Print all modules that user has entered
+     * @throws NoModuleException if there is no module exist in the system.
+     */
     public void printModuleList() {
         if (moduleList.isEmpty()) {
-            System.out.println("No modules recorded yet.");
-            return;
+            logger.warning(() -> "No modules in this student");
+            throw new NoModuleException();
         }
 
         System.out.println("Here are your recorded modules:");
@@ -76,6 +76,7 @@ public class Student {
             // String.format outputs "1. CS2113 | 4 MCs | Grade: A-"
             System.out.println((i + 1) + ". " + module.toString());
         }
+        return;
     }
 
     /**
@@ -237,6 +238,25 @@ public class Student {
     }
 
     /**
+     * A helper function used to calculate total credits.
+     * @return total credits from counted modules
+     */
+    public int calculateTotalCredits() {
+        int totalCredits = 0;
+        for (Module module : moduleList) {
+            if (module.isSu()) {
+                continue;
+            }
+            Grade grade = module.getGrade();
+            if (!grade.isAffectsGpa()) {
+                continue;
+            }
+            totalCredits += module.getCredit();
+        }
+        return totalCredits;
+    }
+
+    /**
      * Edits the module at the given 1-based index.
      * A null argument leaves the corresponding field unchanged.
      *
@@ -273,5 +293,37 @@ public class Student {
             module.setGrade(newGrade);
         }
         return module;
+    }
+    /**
+     * Implements a new command that answers “what average grade do I need from here to hit my target?”
+     * Example: with CS2113 (4 MCs, A-) and MA1521 (4 MCs, B+), the current GPA is 4.25 over 8 MCs.
+     *
+     * @param target User's target GPA
+     * @param remainingMCs number of credits that remains for the user
+     */
+    public void targetGPA(double target,int remainingMCs) {
+        if(target <= 0 || target > 5.0 || remainingMCs <= 0) {
+            logger.warning("Reject targetGPA calculation: target GPA is out of range " +
+                    "or remaining credits is non-positive");
+            throw new TargetException("Target GPA must between 0.0 and 5.0 and remaining credits must be positive");
+        }
+        int currentMCs = calculateTotalCredits();
+        double currentPoints = calculateGpa()*currentMCs;
+        System.out.println("Current GPA:" + calculateGpa() + " remainingMCs:" + currentMCs);
+        double averageGradePointsRequired = (target*(currentMCs + remainingMCs) - currentPoints) / remainingMCs;
+        if (averageGradePointsRequired <= 0.0){
+            System.out.println("You already secured your target GPA!");
+            return;
+        }
+        if (averageGradePointsRequired > 5.0) {
+            double bestAchievableGPA = (currentPoints + 5.0 * remainingMCs)/(currentMCs + remainingMCs);
+            System.out.println("Your target GPA is unreachable! The best you can reach is " + bestAchievableGPA);
+            return;
+        }
+        String estimatedLetterGrade = Grade.estimateLetterGrade(averageGradePointsRequired);
+        System.out.println("To reach " + target +
+                " after " + remainingMCs +
+                " more MCs, you need an average grade point of " + averageGradePointsRequired + "(About " +  estimatedLetterGrade + ")");
+        return;
     }
 }

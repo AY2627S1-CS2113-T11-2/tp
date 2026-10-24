@@ -124,4 +124,51 @@ public class GradeTest {
         assertThrows(IllegalArgumentException.class, () -> Grade.fromLabel("AB"));
         assertThrows(IllegalArgumentException.class, () -> Grade.fromLabel("1"));
     }
+
+    @Test
+    public void estimateLetterGrade_normalValues_correctGrade() {
+        assertEquals("A", Grade.estimateLetterGrade(4.75));
+        assertEquals("A-", Grade.estimateLetterGrade(4.25));
+        assertEquals("B+", Grade.estimateLetterGrade(3.75));
+        assertEquals("B", Grade.estimateLetterGrade(3.25));
+        assertEquals("B-", Grade.estimateLetterGrade(2.75));
+        assertEquals("C+", Grade.estimateLetterGrade(2.25));
+        assertEquals("C", Grade.estimateLetterGrade(1.75));
+        assertEquals("D+", Grade.estimateLetterGrade(1.25));
+        assertEquals("D", Grade.estimateLetterGrade(0.5));
+    }
+
+    @Test
+    public void estimateLetterGrade_boundaryValues_correctGrade() {
+        assertEquals("A", Grade.estimateLetterGrade(5.0));
+        assertEquals("A-", Grade.estimateLetterGrade(4.5));
+        assertEquals("B+", Grade.estimateLetterGrade(4.0));
+        assertEquals("B", Grade.estimateLetterGrade(3.5));
+        assertEquals("B-", Grade.estimateLetterGrade(3.0));
+        assertEquals("C+", Grade.estimateLetterGrade(2.5));
+        assertEquals("C", Grade.estimateLetterGrade(2.0));
+        assertEquals("D+", Grade.estimateLetterGrade(1.5));
+        assertEquals("D", Grade.estimateLetterGrade(1.0));
+        assertEquals("F", Grade.estimateLetterGrade(0.0));
+    }
+
+    @Test
+    public void estimateLetterGrade_invalidValues_throwsException() {
+        assertThrows(IllegalArgumentException.class,
+                () -> Grade.estimateLetterGrade(-0.1));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> Grade.estimateLetterGrade(5.1));
+    }
+
+    @Test
+    public void estimateLetterGrade_invalidValue_correctMessage() {
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> Grade.estimateLetterGrade(6.0));
+
+        assertEquals(
+                "grade point must be between 0.0 and 5.0",
+                exception.getMessage());
+    }
 }
