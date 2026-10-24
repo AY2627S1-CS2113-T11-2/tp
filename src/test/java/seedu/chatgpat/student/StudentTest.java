@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
 
 import seedu.chatgpat.exception.InvalidIndexException;
 import seedu.chatgpat.exception.TargetException;
-import seedu.chatgpat.exception.GpaException;
+
 
 /**
  * Tests the functionality of deleting modules from a student's record.

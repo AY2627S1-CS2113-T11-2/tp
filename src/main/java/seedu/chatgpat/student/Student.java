@@ -3,7 +3,14 @@ package seedu.chatgpat.student;
 import java.util.ArrayList;
 import java.util.logging.Logger;
 
-import seedu.chatgpat.exception.*;
+import seedu.chatgpat.exception.DuplicateModuleException;
+import seedu.chatgpat.exception.EditException;
+import seedu.chatgpat.exception.GpaException;
+import seedu.chatgpat.exception.InvalidIndexException;
+import seedu.chatgpat.exception.SuException;
+import seedu.chatgpat.exception.NoModuleException;
+import seedu.chatgpat.exception.TargetException;
+
 
 public class Student {
     private static final Logger logger =
@@ -323,7 +330,8 @@ public class Student {
         String estimatedLetterGrade = Grade.estimateLetterGrade(averageGradePointsRequired);
         System.out.println("To reach " + target +
                 " after " + remainingMCs +
-                " more MCs, you need an average grade point of " + averageGradePointsRequired + "(About " +  estimatedLetterGrade + ")");
+                " more MCs, you need an average grade point of " +
+                averageGradePointsRequired + "(About " +  estimatedLetterGrade + ")");
         return;
     }
 }
