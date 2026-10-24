@@ -37,7 +37,12 @@ public enum Grade {
         return affectsGpa;
     }
 
-    // Change Sring letter grade to enum grade
+    /**
+     * Change String letter grade to enum Grade
+     * @param input
+     * @return corresponding enum Grade
+     * @throws IllegalArgumentException if the inout is null or in invalid format
+     */
     public static Grade fromLabel(String input) throws IllegalArgumentException {
         if (input == null) {
             throw new IllegalArgumentException("Grade cannot be null");
@@ -50,5 +55,40 @@ public enum Grade {
         }
         throw new IllegalArgumentException("Invalid grade format: " + input);
     }
+
+    /**
+     * Round up the grade points to the corresponding string letter grade.
+     * @param gradePoint gradePoint of a module
+     * @return sting letter grade just greater than the corresponding grade point
+     * @throws IllegalArgumentException if grade point is not between 0.0 and 5.0.
+     */
+    public static String estimateLetterGrade(double gradePoint) {
+        if(gradePoint < 0.0 || gradePoint > 5.0) {
+            throw new IllegalArgumentException("grade point must be between 0.0 and 5.0");
+        }
+        if(gradePoint > 4.5) {
+            return "A";
+        } else if (gradePoint > 4.0) {
+            return "A-";
+        } else if (gradePoint > 3.5) {
+            return "B+";
+        }  else if (gradePoint > 3.0) {
+            return "B";
+        } else if (gradePoint > 2.5) {
+            return "B-";
+        }else if (gradePoint > 2.0) {
+            return "C+";
+        }else if (gradePoint > 1.5) {
+            return "C";
+        }else if (gradePoint >  1.0) {
+            return "D+";
+        }else if (gradePoint >  0.0) {
+            return "D";
+        }else{
+            return "F";
+        }
+    }
+
 }
+
 

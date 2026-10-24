@@ -2,11 +2,18 @@ package seedu.chatgpat.student;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import seedu.chatgpat.exception.InvalidIndexException;
+import seedu.chatgpat.exception.TargetException;
+
 
 /**
  * Tests the functionality of deleting modules from a student's record.
@@ -45,5 +52,76 @@ public class StudentTest {
     @Test
     public void deleteModule_zeroIndex_throwsInvalidIndexException() {
         assertThrows(InvalidIndexException.class, () -> student.deleteModule(0));
+    }
+
+    private String captureTargetOutput(double target, int remainingMcs) {
+        PrintStream originalOut = System.out;
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+
+        try {
+            System.setOut(new PrintStream(
+                    output, true, StandardCharsets.UTF_8));
+
+            student.targetGPA(target, remainingMcs);
+
+            return output.toString(StandardCharsets.UTF_8);
+        } finally {
+            System.setOut(originalOut);
+        }
+    }
+
+    @Test
+    public void targetGPA_normalCase_correctOutput() {
+        String output = captureTargetOutput(4.5, 8);
+        System.out.println("Actual output:");
+        System.out.println(output);
+        assertTrue(output.contains("Current GPA:4.25"));
+        assertTrue(output.contains(
+                "average grade point of 4.75"));
+        assertTrue(output.contains("(About A)"));
+    }
+
+    @Test
+    public void targetGPA_alreadySecured_correctOutput() {
+
+        String output = captureTargetOutput(2.0, 8);
+
+        assertTrue(output.contains(
+                "You already secured your target GPA!"));
+    }
+
+    @Test
+    public void targetGPA_unreachable_correctOutput() {
+
+        String output = captureTargetOutput(5.0, 4);
+
+        assertTrue(output.contains(
+                "Your target GPA is unreachable!"));
+        assertTrue(output.contains(
+                "The best you can reach is 4.5"));
+    }
+
+    @Test
+    public void targetGPA_targetAboveFive_throwsException() {
+        assertThrows(TargetException.class,
+                () -> student.targetGPA(5.5, 8));
+    }
+
+    @Test
+    public void targetGPA_negativeTarget_throwsException() {
+        assertThrows(TargetException.class,
+                () -> student.targetGPA(-1.0, 8));
+    }
+
+    @Test
+    public void targetGPA_zeroRemainingMcs_throwsException() {
+        assertThrows(TargetException.class,
+                () -> student.targetGPA(4.5, 0));
+    }
+
+    @Test
+    public void targetGPA_negativeRemainingMcs_throwsException() {
+        assertThrows(TargetException.class,
+                () -> student.targetGPA(4.5, -4));
     }
 }
