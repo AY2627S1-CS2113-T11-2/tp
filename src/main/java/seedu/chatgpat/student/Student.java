@@ -315,7 +315,7 @@ public class Student {
     public String targetGPA(double target,int remainingMCs) {
         if(target <= 0 || target > 5.0) {
             logger.warning("Reject targetGPA calculation: target GPA is out of range.");
-            throw new TargetException("Target GPA must between 0.0 and 5.0.");
+            throw new TargetException("Target GPA must be between 0.0 and 5.0 inclusively.");
         }
         if (remainingMCs <= 0) {
             logger.warning("Reject targetGPA calculation: remainingMCs is non-positive.");
