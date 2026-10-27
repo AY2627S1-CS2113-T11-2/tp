@@ -79,6 +79,7 @@ Here are your recorded modules:
 1. CS2113 | 4 MCs | Grade: A-
 2. MA1521 | 4 MCs | Grade: B+
 ```
+Modules planned with `plan` also show their semester at the end of the line, for example `1. CS2113 | 4 MCs | Grade: A- | Y2S1`.
 
 ### Deleting a module: `delete`
 
@@ -116,6 +117,36 @@ Edits an existing module's code, credits, and/or grade.
 ```text
 Module 2 updated: MA1521 | 4 MCs | Grade: A
 ```
+
+### Planning a module for a semester: `plan`
+
+Assigns a module to a year and semester so you can organise your modules into a study plan. Running the command again on the same module moves it to the new semester.
+
+**Format:** `plan INDEX y/YEAR s/SEM`
+
+- `INDEX` is the module's number in `list`, starting from 1.
+- `YEAR` is your year of study, from 1 to 4.
+- `SEM` is the semester, either 1 or 2.
+- All three parts are required.
+
+**Examples:**
+
+- `plan 1 y/2 s/1` — plans module 1 for Year 2 Semester 1.
+- `plan 1 y/3 s/2` — moves module 1 to Year 3 Semester 2.
+
+**Expected output:**
+
+```text
+Planned module 1 for Y2S1:
+  CS2113 | 4 MCs | Grade: A- | Y2S1
+```
+
+**Errors:**
+
+- A missing or wrongly formatted part shows `Usage: plan INDEX y/YEAR s/SEM`.
+- A year outside 1 to 4 shows `Year must be between 1 and 4, there is an invalid year: 9`.
+- A semester outside 1 to 2 shows `Semester must be between 1 and 2, there is an invalid year: 3`.
+- An index that isn't in your list shows an invalid module index message.
 
 ### Showing total GPA: `gpa`
 
