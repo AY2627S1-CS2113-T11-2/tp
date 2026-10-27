@@ -7,8 +7,9 @@ import seedu.chatgpat.exception.DuplicateModuleException;
 import seedu.chatgpat.exception.EditException;
 import seedu.chatgpat.exception.GpaException;
 import seedu.chatgpat.exception.InvalidIndexException;
-import seedu.chatgpat.exception.SuException;
 import seedu.chatgpat.exception.NoModuleException;
+import seedu.chatgpat.exception.PlanException;
+import seedu.chatgpat.exception.SuException;
 import seedu.chatgpat.exception.TargetException;
 
 
@@ -363,6 +364,32 @@ public class Student {
         module.setSemester(semester);
         logger.info(() -> String.format("Planned module %d (%s) for %s",
                 index, module.getModuleCode(), semester));
+        return module;
+    }
+
+
+    /**
+     * Removes the semester of the module at the given 1-based index.
+     * The module stays in the record and is marked as not planned.
+     *
+     * @param  index The 1-based index of the module to unplan.
+     * @return       The unplanned module.
+     * @throws InvalidIndexException
+     *         If the index is out of range.
+     * @throws PlanException
+     *         If the module is not planned.
+     */
+    public Module unplanModule(int index) {
+        Module module = getModule(index);
+        if (module.getSemester() == null) {
+            logger.warning(() -> String.format(
+                    "Rejected unplan on module %d (%s): not planned",
+                    index, module.getModuleCode()));
+            throw new PlanException(String.format(
+                    "Module %d is not planned.", index));
+        }
+        module.setSemester(null);
+        assert module.getSemester() == null : "Module should be unplanned after unplanModule";
         return module;
     }
 }
