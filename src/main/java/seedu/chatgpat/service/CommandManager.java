@@ -16,6 +16,7 @@ import seedu.chatgpat.command.module.PlanCommand;
 import seedu.chatgpat.command.module.QuotaCommand;
 import seedu.chatgpat.command.module.SuCommand;
 import seedu.chatgpat.command.module.UnsuCommand;
+import seedu.chatgpat.command.module.TargetGpaCommand;
 import seedu.chatgpat.exception.UnknownCommandException;
 import seedu.chatgpat.parser.Parser;
 import seedu.chatgpat.student.Student;
@@ -44,6 +45,8 @@ public class CommandManager {
             GpaCommand::parse,
             GpaCommand::parse,
             DeleteCommand::parse,
+            EditCommand::parse,
+            TargetGpaCommand::parse,
             EditCommand::parse,
             PlanCommand::parse
         ));

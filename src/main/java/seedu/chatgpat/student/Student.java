@@ -8,6 +8,9 @@ import seedu.chatgpat.exception.EditException;
 import seedu.chatgpat.exception.GpaException;
 import seedu.chatgpat.exception.InvalidIndexException;
 import seedu.chatgpat.exception.SuException;
+import seedu.chatgpat.exception.NoModuleException;
+import seedu.chatgpat.exception.TargetException;
+
 
 public class Student {
     private static final Logger logger =
@@ -17,6 +20,8 @@ public class Student {
     private String id;
     private ArrayList<Module> moduleList = new ArrayList<Module>();
     private int suQuota;
+    private record GpaData(double totalGradePoints, int totalCredits) {
+    }
     Student(String name, String id,int suQuota) {
         this.name = name;
         this.id = id;
@@ -64,10 +69,14 @@ public class Student {
         moduleList.add(module);
     }
 
+    /**
+     * Print all modules that user has entered
+     * @throws NoModuleException if there is no module exist in the system.
+     */
     public void printModuleList() {
         if (moduleList.isEmpty()) {
-            System.out.println("No modules recorded yet.");
-            return;
+            logger.warning(() -> "No modules in this student");
+            throw new NoModuleException();
         }
 
         System.out.println("Here are your recorded modules:");
@@ -76,6 +85,7 @@ public class Student {
             // String.format outputs "1. CS2113 | 4 MCs | Grade: A-"
             System.out.println((i + 1) + ". " + module.toString());
         }
+        return;
     }
 
     /**
@@ -206,6 +216,32 @@ public class Student {
     }
 
     /**
+     * a helper function that calculates the student's total grade points and total credits,
+     * excluding modules that do not affect GPA (SU-ed modules, and modules with grades such as CS or CU).
+     * @return GpaDate (a package including total grade points and total credits)
+     */
+    private GpaData calculateGpaData() {
+        double totalGradePoints = 0.0;
+        int totalCredits = 0;
+
+        for (Module module : moduleList) {
+            if (module.isSu()) {
+                continue;
+            }
+
+            Grade grade = module.getGrade();
+            if (!grade.isAffectsGpa()) {
+                continue;
+            }
+
+            totalGradePoints += grade.getGradePoint() * module.getCredit();
+            totalCredits += module.getCredit();
+        }
+
+        return new GpaData(totalGradePoints, totalCredits);
+    }
+
+    /**
      * Calculates the student's GPA, excluding modules that do not affect
      * GPA (SU-ed modules, and modules with grades such as CS or CU).
      *
@@ -213,26 +249,20 @@ public class Student {
      * @throws GpaException If no module contributes to GPA.
      */
     public double calculateGpa() {
-        double totalGradePoints = 0.0;
-        int totalCredits = 0;
-        for (Module module : moduleList) {
-            if (module.isSu()) {
-                continue;
-            }
-            Grade grade = module.getGrade();
-            if (!grade.isAffectsGpa()) {
-                continue;
-            }
-            totalGradePoints += grade.getGradePoint() * module.getCredit();
-            totalCredits += module.getCredit();
-        }
-        if (totalCredits == 0) {
-            logger.warning("Rejected GPA calculation: no module contributes to GPA");
+        GpaData data = calculateGpaData();
+
+        if (data.totalCredits() == 0) {
+            logger.warning(
+                    "Rejected GPA calculation: no module contributes to GPA");
             throw new GpaException(
                     "No modules contribute to GPA. Add a graded module first.");
         }
-        double gpa = totalGradePoints / totalCredits;
-        assert gpa >= 0.0 && gpa <= 5.0 : "GPA should be within [0, 5]";
+
+        double gpa = data.totalGradePoints() / data.totalCredits();
+
+        assert gpa >= 0.0 && gpa <= 5.0
+                : "GPA should be within [0, 5]";
+
         return gpa;
     }
 
@@ -274,7 +304,48 @@ public class Student {
         }
         return module;
     }
-
+    /**
+     * Implements a new command that answers “what average grade do I need from here to hit my target?”
+     * Example: with CS2113 (4 MCs, A-) and MA1521 (4 MCs, B+), the current GPA is 4.25 over 8 MCs.
+     *
+     * @param target User's target GPA
+     * @param remainingMCs number of credits that remains for the user
+     * @return String of expected output message
+     */
+    public String targetGPA(double target,int remainingMCs) {
+        if(target <= 0 || target > 5.0) {
+            logger.warning("Reject targetGPA calculation: target GPA is out of range.");
+            throw new TargetException("Target GPA must be between 0.0 and 5.0 inclusively.");
+        }
+        if (remainingMCs <= 0) {
+            logger.warning("Reject targetGPA calculation: remainingMCs is non-positive.");
+            throw new TargetException("Remaining MCs must be positive.");
+        }
+        GpaData data = calculateGpaData();
+        if (data.totalCredits() == 0) {
+            throw new GpaException(
+                    "No modules contribute to GPA. Add a graded module first.");
+        }
+        int currentMCs = data.totalCredits();
+        double currentPoints = data.totalGradePoints();
+        String currentGpaDataMessage = String.format("Current GPA: %.2f over %d MCs.%n",calculateGpa(),currentMCs);
+        double averageGradePointsRequired = (target*(currentMCs + remainingMCs) - currentPoints) / remainingMCs;
+        if (averageGradePointsRequired <= 0.0){
+            return currentGpaDataMessage +
+                    "You already secured your target GPA!";
+        }
+        if (averageGradePointsRequired > 5.0) {
+            double bestAchievableGPA = (currentPoints + 5.0 * remainingMCs)/(currentMCs + remainingMCs);
+            return  currentGpaDataMessage +
+                    "Your target GPA is unreachable! The best you can reach is " + bestAchievableGPA;
+        }
+        String estimatedLetterGrade = Grade.estimateLetterGrade(averageGradePointsRequired);
+        return currentGpaDataMessage +
+                "To reach " + target +
+                " after " + remainingMCs +
+                " more MCs, you need an average grade point of " +
+                averageGradePointsRequired + " (About " +  estimatedLetterGrade + ")";
+    }
 
     /**
      * Assigns the module at the given 1-based index to a semester.

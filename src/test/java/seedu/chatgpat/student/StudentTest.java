@@ -3,10 +3,13 @@ package seedu.chatgpat.student;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import seedu.chatgpat.exception.InvalidIndexException;
+import seedu.chatgpat.exception.TargetException;
+import seedu.chatgpat.exception.GpaException;
 
 /**
  * Tests the functionality of deleting modules from a student's record.
@@ -46,4 +49,69 @@ public class StudentTest {
     public void deleteModule_zeroIndex_throwsInvalidIndexException() {
         assertThrows(InvalidIndexException.class, () -> student.deleteModule(0));
     }
+
+
+    @Test
+    public void targetGPA_normalCase_correctOutput() {
+        String expected = String.format("Current GPA: 4.25 over 8 MCs.%n") +
+                "To reach 4.5 after 8 more MCs, "
+                + "you need an average grade point of 4.75 (About A)";
+
+        String actual = student.targetGPA(4.5, 8);
+
+        assertEquals(expected, actual);
+    }
+
+    @Test
+    public void targetGPA_alreadySecured_correctOutput() {
+        String expected = String.format("Current GPA: 4.25 over 8 MCs.%n") +
+                "You already secured your target GPA!";
+
+        String actual = student.targetGPA(2.0, 8);
+
+        assertEquals(expected, actual);
+    }
+
+    @Test
+    public void targetGPA_unreachable_correctOutput() {
+        String expected = String.format("Current GPA: 4.25 over 8 MCs.%n") +
+                "Your target GPA is unreachable! "
+                + "The best you can reach is 4.5";
+
+        String actual = student.targetGPA(5.0, 4);
+
+        assertEquals(expected, actual);
+    }
+
+    @Test
+    public void targetGPA_targetAboveFive_throwsException() {
+        assertThrows(TargetException.class,
+                () -> student.targetGPA(5.5, 8));
+    }
+
+    @Test
+    public void targetGPA_negativeTarget_throwsException() {
+        assertThrows(TargetException.class,
+                () -> student.targetGPA(-1.0, 8));
+    }
+
+    @Test
+    public void targetGPA_zeroRemainingMcs_throwsException() {
+        assertThrows(TargetException.class,
+                () -> student.targetGPA(4.5, 0));
+    }
+
+    @Test
+    public void targetGPA_negativeRemainingMcs_throwsException() {
+        assertThrows(TargetException.class,
+                () -> student.targetGPA(4.5, -4));
+    }
+    @Test
+    public void targetGPA_noGradedModules_throwsGpaException() {
+        Student emptyStudent = new Student();
+
+        assertThrows(GpaException.class,
+                () -> emptyStudent.targetGPA(4.5, 8));
+    }
 }
+
