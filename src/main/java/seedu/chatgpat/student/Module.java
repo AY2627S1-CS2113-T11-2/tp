@@ -8,6 +8,7 @@ public class Module {
     private int credit;
     private Grade grade;
     private boolean isSuApplied;
+    private Semester semester;
     public Module(String moduleCode, String moduleName, String moduleDescription,
                   int credit,Grade grade,boolean isSuApplied) {
         this.moduleCode = moduleCode;
@@ -55,11 +56,30 @@ public class Module {
         this.isSuApplied = isSuApplied;
     }
 
+    /**
+     * Returns the semester this module is planned for.
+     *
+     * @return The semester, or null if the module is not planned.
+     */
+    public Semester getSemester() {
+        return semester;
+    }
+
+    /**
+     * Sets the semester this module is planned for.
+     *
+     * @param semester The new semester, or null to mark the module as unplanned.
+     */
+    public void setSemester(Semester semester) {
+        this.semester = semester;
+    }
+
     @Override
     public String toString() {
         String suTag = isSuApplied ? " [S/U]" : "";
-        return String.format("%s | %d MCs | Grade: %s%s",
-                moduleCode, credit, grade.getLabel(), suTag);
+        String semesterTag = (semester == null) ? "" : " | " + semester;
+        return String.format("%s | %d MCs | Grade: %s%s%s",
+                moduleCode, credit, grade.getLabel(), suTag, semesterTag);
     }
 
     public void setModuleCode(String moduleCode) {
