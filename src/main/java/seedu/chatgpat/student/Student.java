@@ -346,4 +346,24 @@ public class Student {
                 " more MCs, you need an average grade point of " +
                 averageGradePointsRequired + " (About " +  estimatedLetterGrade + ")";
     }
+
+
+    /**
+     * Assigns the module at the given 1-based index to a semester.
+     * If the module is already planned, it is moved to the new semester.
+     *
+     * @param  index    The 1-based index of the module to plan.
+     * @param  semester The semester to plan the module for.
+     * @return          The planned module.
+     * @throws InvalidIndexException
+     *         If the index is out of range.
+     */
+    public Module planModule(int index, Semester semester) {
+        assert semester != null : "Semester to plan should not be null";
+        Module module = getModule(index);
+        module.setSemester(semester);
+        logger.info(() -> String.format("Planned module %d (%s) for %s",
+                index, module.getModuleCode(), semester));
+        return module;
+    }
 }
