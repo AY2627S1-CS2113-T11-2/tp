@@ -18,7 +18,6 @@ import seedu.chatgpat.command.module.SuCommand;
 import seedu.chatgpat.command.module.SummaryCommand;
 import seedu.chatgpat.command.module.UnplanCommand;
 import seedu.chatgpat.command.module.UnsuCommand;
-import seedu.chatgpat.command.module.UnplanCommand;
 import seedu.chatgpat.command.module.TargetGpaCommand;
 import seedu.chatgpat.exception.UnknownCommandException;
 import seedu.chatgpat.parser.Parser;
