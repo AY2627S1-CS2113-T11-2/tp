@@ -1,8 +1,5 @@
 package seedu.chatgpat.student;
 
-/**
- * Stores a module's details, original grade, SU status and optional semester plan.
- */
 public class Module {
 
     private String moduleCode;
@@ -12,10 +9,6 @@ public class Module {
     private Grade grade;
     private boolean isSuApplied;
     private Semester semester;
-    /**
-     * Constructs a module, preserving its SU status when restoring saved records.
-     * The semester is initially unplanned and can be assigned with {@link #setSemester(Semester)}.
-     */
     public Module(String moduleCode, String moduleName, String moduleDescription,
                   int credit,Grade grade,boolean isSuApplied) {
         this.moduleCode = moduleCode;
@@ -23,7 +16,7 @@ public class Module {
         this.moduleDescription = moduleDescription;
         this.grade = grade;
         this.credit = credit;
-        this.isSuApplied = isSuApplied;
+        this.isSuApplied = false;
     }
     public String getModuleCode() {
         return moduleCode;
@@ -33,8 +26,8 @@ public class Module {
         return moduleName;
     }
 
-    public String getModuleDescription() {
-        return moduleDescription;
+    public void showModuleDescription() {
+        System.out.println(moduleDescription);
     }
 
     public int getCredit() {

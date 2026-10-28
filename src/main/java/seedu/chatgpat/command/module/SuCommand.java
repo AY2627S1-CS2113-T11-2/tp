@@ -54,6 +54,6 @@ public class SuCommand extends Command {
         Module module = student.applySu(index);
         int remaining = student.getRemainingSuQuota();
         String message = String.format(MESSAGE_SUCCESS, index, module, remaining);
-        return Response.forDataChange(message, module);
+        return new Response(message, module);
     }
 }

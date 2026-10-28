@@ -16,8 +16,5 @@ bin/
 # Temp files
 _temp/
 
-# Local module records
-/data/
-
 /text-ui-test/ACTUAL.TXT
 text-ui-test/EXPECTED-UNIX.TXT

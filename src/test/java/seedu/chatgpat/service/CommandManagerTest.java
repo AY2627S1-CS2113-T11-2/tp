@@ -67,7 +67,6 @@ public class CommandManagerTest {
 
         assertTrue(response.message().contains("help     -"));
         assertTrue(response.message().contains("gpa      -"));
-        assertTrue(response.message().contains("summary  -"));
         assertTrue(response.message().contains("su INDEX -"));
         assertTrue(response.message().contains("exit     -"));
         assertFalse(response.isExit());
@@ -89,36 +88,6 @@ public class CommandManagerTest {
 
         assertThrows(UnknownCommandException.class, () -> manager.processQuery("helpful"));
         assertThrows(UnknownCommandException.class, () -> manager.processQuery("help123"));
-    }
-
-    @Test
-    public void processQuery_summary_reflectsChangesToModules() {
-        CommandManager manager = new CommandManager(new Student());
-        manager.processQuery("add m/CS2113 c/4 g/A-");
-        manager.processQuery("add m/MA1521 c/4 g/B+");
-        manager.processQuery("plan 1 y/2 s/1");
-
-        assertEquals("""
-                Y2S1 | 1 module | 4 MCs | GPA 4.50
-                Unplanned | 1 module | 4 MCs""", manager.processQuery("summary").message());
-
-        manager.processQuery("plan 1 y/1 s/2");
-        manager.processQuery("plan 2 y/1 s/2");
-        manager.processQuery("edit 2 c/2 g/A");
-        manager.processQuery("su 1");
-
-        assertEquals("""
-                Y1S2 | 2 modules | 6 MCs | GPA 5.00
-                Unplanned | 0 modules | 0 MCs""", manager.processQuery("summary").message());
-
-        manager.processQuery("unsu 1");
-        assertEquals("""
-                Y1S2 | 2 modules | 6 MCs | GPA 4.67
-                Unplanned | 0 modules | 0 MCs""", manager.processQuery("summary").message());
-
-        manager.processQuery("delete 2");
-        manager.processQuery("delete 1");
-        assertEquals("Unplanned | 0 modules | 0 MCs", manager.processQuery("summary").message());
     }
 
     /**

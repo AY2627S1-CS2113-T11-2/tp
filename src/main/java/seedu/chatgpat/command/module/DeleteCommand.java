@@ -50,6 +50,6 @@ public class DeleteCommand extends Command {
     @Override
     public Response execute(Student student) {
         Module removed = student.deleteModule(index);
-        return Response.forDataChange(String.format(MESSAGE_SUCCESS, index), removed);
+        return new Response(String.format(MESSAGE_SUCCESS, index), removed);
     }
 }

@@ -73,6 +73,6 @@ public class PlanCommand extends Command {
     @Override
     public Response execute(Student student) {
         Module module = student.planModule(index, semester);
-        return Response.forDataChange(String.format(MESSAGE_SUCCESS, index, semester), module);
+        return new Response(String.format(MESSAGE_SUCCESS, index, semester), module);
     }
 }
