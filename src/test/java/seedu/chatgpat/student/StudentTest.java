@@ -3,6 +3,7 @@ package seedu.chatgpat.student;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -10,6 +11,8 @@ import org.junit.jupiter.api.Test;
 import seedu.chatgpat.exception.InvalidIndexException;
 import seedu.chatgpat.exception.TargetException;
 import seedu.chatgpat.exception.GpaException;
+
+import java.util.ArrayList;
 
 /**
  * Tests the functionality of deleting modules from a student's record.
@@ -113,5 +116,14 @@ public class StudentTest {
         assertThrows(GpaException.class,
                 () -> emptyStudent.targetGPA(4.5, 8));
     }
+
+    @Test
+    public void filterModule_validSemester_returnsFilteredModule() {
+        student.planModule(1,new Semester(2,2));
+        student.planModule(2,new Semester(3,2));
+        ArrayList<Integer> expected = new ArrayList<>(List.of(1));
+        assertEquals(expected,student.filterModule(new  Semester(2,2)));
+    }
+
 }
 

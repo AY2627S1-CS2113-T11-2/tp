@@ -21,15 +21,17 @@ import seedu.chatgpat.exception.TargetException;
  */
 public class Student {
     private static final Logger logger =
-        Logger.getLogger(Student.class.getName());
+            Logger.getLogger(Student.class.getName());
 
     private String name;
     private String id;
     private ArrayList<Module> moduleList = new ArrayList<Module>();
     private int suQuota;
+
     private record GpaData(double totalGradePoints, int totalCredits) {
     }
-    Student(String name, String id,int suQuota) {
+
+    Student(String name, String id, int suQuota) {
         this.name = name;
         this.id = id;
         this.suQuota = suQuota;
@@ -45,12 +47,15 @@ public class Student {
     public String getName() {
         return name;
     }
+
     public String getId() {
         return id;
     }
+
     public int getSuQuota() {
         return suQuota;
     }
+
     public boolean isModuleExists(ArrayList<Module> modules, String newCode) {
         for (Module m : modules) {
             if (m.getModuleCode().equalsIgnoreCase(newCode)) {
@@ -63,9 +68,8 @@ public class Student {
     /**
      * Adds a module to the student's record.
      *
-     * @param  module The module to add.
-     * @throws DuplicateModuleException
-     *         If a module with the same code already exists.
+     * @param module The module to add.
+     * @throws DuplicateModuleException If a module with the same code already exists.
      */
     public void addModule(Module module) throws DuplicateModuleException {
         if (isModuleExists(moduleList, module.getModuleCode())) {
@@ -89,10 +93,9 @@ public class Student {
     /**
      * Deletes the module at the given 1-based index.
      *
-     * @param  index The 1-based index of the module to delete.
-     * @return       The module that was deleted.
-     * @throws InvalidIndexException
-     *         If the index is out of range.
+     * @param index The 1-based index of the module to delete.
+     * @return The module that was deleted.
+     * @throws InvalidIndexException If the index is out of range.
      */
     public Module deleteModule(int index) {
         Module module = getModule(index);
@@ -103,10 +106,9 @@ public class Student {
     /**
      * Returns the module at the given 1-based index.
      *
-     * @param  index The 1-based index of the module.
-     * @return       The module at the given index.
-     * @throws InvalidIndexException
-     *         If the index is out of range.
+     * @param index The 1-based index of the module.
+     * @return The module at the given index.
+     * @throws InvalidIndexException If the index is out of range.
      */
     public Module getModule(int index) {
         if (index < 1 || index > moduleList.size()) {
@@ -148,12 +150,10 @@ public class Student {
      * Applies SU on the module at the given 1-based index.
      * The module is excluded from GPA calculation afterwards.
      *
-     * @param  index The 1-based index of the module to SU.
-     * @return       The module that was SU-ed.
-     * @throws InvalidIndexException
-     *         If the index is out of range.
-     * @throws SuException
-     *         If the module is already SU-ed, or if the remaining quota is insufficient.
+     * @param index The 1-based index of the module to SU.
+     * @return The module that was SU-ed.
+     * @throws InvalidIndexException If the index is out of range.
+     * @throws SuException           If the module is already SU-ed, or if the remaining quota is insufficient.
      */
     public Module applySu(int index) {
         Module module = getModule(index);
@@ -192,12 +192,10 @@ public class Student {
      * Removes SU on the module at the given 1-based index.
      * The module is included into GPA calculation afterwards.
      *
-     * @param  index The 1-based index of the module to SU.
-     * @return       The module that has SU removed.
-     * @throws InvalidIndexException
-     *         If the index is out of range.
-     * @throws SuException
-     *         If the module is already not SU-ed.
+     * @param index The 1-based index of the module to SU.
+     * @return The module that has SU removed.
+     * @throws InvalidIndexException If the index is out of range.
+     * @throws SuException           If the module is already not SU-ed.
      */
     public Module removeSu(int index) {
         Module module = getModule(index);
@@ -302,15 +300,13 @@ public class Student {
      * Edits the module at the given 1-based index.
      * A null argument leaves the corresponding field unchanged.
      *
-     * @param  index     The 1-based index of the module to edit.
-     * @param  newCode   The new module code, or null to keep the current one.
-     * @param  newCredit The new credit value, or null to keep the current one.
-     * @param  newGrade  The new grade, or null to keep the current one.
-     * @return           The edited module.
-     * @throws InvalidIndexException
-     *         If the index is out of range.
-     * @throws EditException
-     *         If no field is given, the credit is not positive, or the new code already exists.
+     * @param index     The 1-based index of the module to edit.
+     * @param newCode   The new module code, or null to keep the current one.
+     * @param newCredit The new credit value, or null to keep the current one.
+     * @param newGrade  The new grade, or null to keep the current one.
+     * @return The edited module.
+     * @throws InvalidIndexException If the index is out of range.
+     * @throws EditException         If no field is given, the credit is not positive, or the new code already exists.
      */
     public Module editModule(int index, String newCode, Integer newCredit, Grade newGrade) {
         Module module = getModule(index);
@@ -336,16 +332,17 @@ public class Student {
         }
         return module;
     }
+
     /**
      * Implements a new command that answers “what average grade do I need from here to hit my target?”
      * Example: with CS2113 (4 MCs, A-) and MA1521 (4 MCs, B+), the current GPA is 4.25 over 8 MCs.
      *
-     * @param target User's target GPA
+     * @param target       User's target GPA
      * @param remainingMCs number of credits that remains for the user
      * @return String of expected output message
      */
-    public String targetGPA(double target,int remainingMCs) {
-        if(target <= 0 || target > 5.0) {
+    public String targetGPA(double target, int remainingMCs) {
+        if (target <= 0 || target > 5.0) {
             logger.warning("Reject targetGPA calculation: target GPA is out of range.");
             throw new TargetException("Target GPA must be between 0.0 and 5.0 inclusively.");
         }
@@ -360,15 +357,15 @@ public class Student {
         }
         int currentMCs = data.totalCredits();
         double currentPoints = data.totalGradePoints();
-        String currentGpaDataMessage = String.format("Current GPA: %.2f over %d MCs.%n",calculateGpa(),currentMCs);
-        double averageGradePointsRequired = (target*(currentMCs + remainingMCs) - currentPoints) / remainingMCs;
-        if (averageGradePointsRequired <= 0.0){
+        String currentGpaDataMessage = String.format("Current GPA: %.2f over %d MCs.%n", calculateGpa(), currentMCs);
+        double averageGradePointsRequired = (target * (currentMCs + remainingMCs) - currentPoints) / remainingMCs;
+        if (averageGradePointsRequired <= 0.0) {
             return currentGpaDataMessage +
                     "You already secured your target GPA!";
         }
         if (averageGradePointsRequired > 5.0) {
-            double bestAchievableGPA = (currentPoints + 5.0 * remainingMCs)/(currentMCs + remainingMCs);
-            return  currentGpaDataMessage +
+            double bestAchievableGPA = (currentPoints + 5.0 * remainingMCs) / (currentMCs + remainingMCs);
+            return currentGpaDataMessage +
                     "Your target GPA is unreachable! The best you can reach is " + bestAchievableGPA;
         }
         String estimatedLetterGrade = Grade.estimateLetterGrade(averageGradePointsRequired);
@@ -376,18 +373,17 @@ public class Student {
                 "To reach " + target +
                 " after " + remainingMCs +
                 " more MCs, you need an average grade point of " +
-                averageGradePointsRequired + " (About " +  estimatedLetterGrade + ")";
+                averageGradePointsRequired + " (About " + estimatedLetterGrade + ")";
     }
 
     /**
      * Assigns the module at the given 1-based index to a semester.
      * If the module is already planned, it is moved to the new semester.
      *
-     * @param  index    The 1-based index of the module to plan.
-     * @param  semester The semester to plan the module for.
-     * @return          The planned module.
-     * @throws InvalidIndexException
-     *         If the index is out of range.
+     * @param index    The 1-based index of the module to plan.
+     * @param semester The semester to plan the module for.
+     * @return The planned module.
+     * @throws InvalidIndexException If the index is out of range.
      */
     public Module planModule(int index, Semester semester) {
         assert semester != null : "Semester to plan should not be null";
@@ -404,7 +400,7 @@ public class Student {
      * @param index The 1-based module index.
      * @return The module with no semester assigned.
      * @throws InvalidIndexException If the index is out of range.
-     * @throws PlanException If the module is already unplanned.
+     * @throws PlanException         If the module is already unplanned.
      */
     public Module unplanModule(int index) {
         Module module = getModule(index);
@@ -419,4 +415,19 @@ public class Student {
         assert module.getSemester() == null : "Module should be unplanned after unplanModule";
         return module;
     }
+
+    public ArrayList<Integer> filterModule(Semester semester) {
+        ArrayList<Integer> indexesFiltered = new ArrayList<Integer>();
+        for (int i = 0; i < moduleList.size(); i++) {
+            Module module = moduleList.get(i);
+
+            if (module.getSemester().equals(semester)) {
+                indexesFiltered.add(i + 1);
+            }
+        }
+
+        return indexesFiltered;
+    }
+
 }
+
