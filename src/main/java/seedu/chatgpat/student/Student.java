@@ -1,6 +1,11 @@
 package seedu.chatgpat.student;
 
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.OptionalDouble;
+import java.util.TreeMap;
 import java.util.logging.Logger;
 
 import seedu.chatgpat.exception.DuplicateModuleException;
@@ -11,7 +16,9 @@ import seedu.chatgpat.exception.SuException;
 import seedu.chatgpat.exception.NoModuleException;
 import seedu.chatgpat.exception.TargetException;
 
-
+/**
+ * Stores a student's modules and manages their grades, semester plans, and SU quota.
+ */
 public class Student {
     private static final Logger logger =
         Logger.getLogger(Student.class.getName());
@@ -216,15 +223,17 @@ public class Student {
     }
 
     /**
-     * a helper function that calculates the student's total grade points and total credits,
+     * Calculates total grade points and GPA-contributing credits for the given modules,
      * excluding modules that do not affect GPA (SU-ed modules, and modules with grades such as CS or CU).
-     * @return GpaDate (a package including total grade points and total credits)
+     *
+     * @param modules The modules to include in the calculation.
+     * @return The weighted grade points and GPA-contributing credits.
      */
-    private GpaData calculateGpaData() {
+    private GpaData calculateGpaData(Iterable<Module> modules) {
         double totalGradePoints = 0.0;
         int totalCredits = 0;
 
-        for (Module module : moduleList) {
+        for (Module module : modules) {
             if (module.isSu()) {
                 continue;
             }
@@ -249,7 +258,7 @@ public class Student {
      * @throws GpaException If no module contributes to GPA.
      */
     public double calculateGpa() {
-        GpaData data = calculateGpaData();
+        GpaData data = calculateGpaData(moduleList);
 
         if (data.totalCredits() == 0) {
             logger.warning(
@@ -264,6 +273,38 @@ public class Student {
                 : "GPA should be within [0, 5]";
 
         return gpa;
+    }
+
+    /**
+     * Summarises occupied semesters in year and term order, followed by unplanned modules.
+     * All modules count towards module and MC totals; GPA uses the same exclusions as {@link #calculateGpa()}.
+     * The unplanned summary is always included and has no GPA.
+     *
+     * @return The semester summaries, with the unplanned summary last.
+     */
+    public List<SemesterSummary> getSemesterSummaries() {
+        Comparator<Semester> order = Comparator.comparingInt(Semester::year).thenComparingInt(Semester::term);
+        Map<Semester, List<Module>> groups = new TreeMap<>(Comparator.nullsLast(order));
+        groups.put(null, new ArrayList<>());
+        for (Module module : moduleList) {
+            groups.computeIfAbsent(module.getSemester(), semester -> new ArrayList<>()).add(module);
+        }
+
+        List<SemesterSummary> summaries = new ArrayList<>();
+        for (Map.Entry<Semester, List<Module>> entry : groups.entrySet()) {
+            List<Module> modules = entry.getValue();
+            int totalCredits = 0;
+            for (Module module : modules) {
+                totalCredits += module.getCredit();
+            }
+            GpaData data = calculateGpaData(modules);
+            OptionalDouble gpa = OptionalDouble.empty();
+            if (entry.getKey() != null && data.totalCredits() > 0) {
+                gpa = OptionalDouble.of(data.totalGradePoints() / data.totalCredits());
+            }
+            summaries.add(new SemesterSummary(entry.getKey(), modules.size(), totalCredits, gpa));
+        }
+        return summaries;
     }
 
     /**
@@ -321,7 +362,7 @@ public class Student {
             logger.warning("Reject targetGPA calculation: remainingMCs is non-positive.");
             throw new TargetException("Remaining MCs must be positive.");
         }
-        GpaData data = calculateGpaData();
+        GpaData data = calculateGpaData(moduleList);
         if (data.totalCredits() == 0) {
             throw new GpaException(
                     "No modules contribute to GPA. Add a graded module first.");

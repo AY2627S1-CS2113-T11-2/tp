@@ -37,6 +37,7 @@ Shows a summary of all currently available commands in the terminal, then return
 Available commands:
   help     - Show this command summary.
   gpa      - Show GPA, excluding SU-ed modules and non-GPA grades.
+  summary  - Show module counts, MCs, and GPA by semester, plus unplanned totals.
   su INDEX - Apply SU to a module and show the remaining SU quota.
   exit     - Exit ChatGPat.
 
@@ -147,6 +148,26 @@ Planned module 1 for Y2S1:
 - A year outside 1 to 4 shows `Year must be between 1 and 4, there is an invalid year: 9`.
 - A semester outside 1 to 2 shows `Semester must be between 1 and 2, there is an invalid year: 3`.
 - An index that isn't in your list shows an invalid module index message.
+
+### Summarising semesters: `summary`
+
+Shows one line per semester containing modules, sorted by year and then semester, followed by an `Unplanned` line.
+
+**Format:** `summary`
+
+- Each semester line shows its module count, total MCs, and credit-weighted GPA rounded to two decimal places.
+- SU-ed modules and non-GPA grades (`CS` and `CU`) count towards module and MC totals but are excluded from GPA, just as with `gpa`.
+- A semester with no GPA-contributing credits shows `GPA n/a`.
+- The `Unplanned` line shows module and MC totals without a GPA. It is always included, even when there are no unplanned modules.
+- If no modules are recorded, the output is `Unplanned | 0 modules | 0 MCs`.
+
+**Example output:**
+
+```text
+Y1S1 | 3 modules | 18 MCs | GPA 4.35
+Y2S1 | 2 modules | 8 MCs | GPA 4.25
+Unplanned | 1 module | 4 MCs
+```
 
 ### Showing total GPA: `gpa`
 
