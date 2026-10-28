@@ -12,8 +12,9 @@ import seedu.chatgpat.exception.DuplicateModuleException;
 import seedu.chatgpat.exception.EditException;
 import seedu.chatgpat.exception.GpaException;
 import seedu.chatgpat.exception.InvalidIndexException;
-import seedu.chatgpat.exception.SuException;
+import seedu.chatgpat.exception.NoModuleException;
 import seedu.chatgpat.exception.PlanException;
+import seedu.chatgpat.exception.SuException;
 import seedu.chatgpat.exception.TargetException;
 
 /**
@@ -409,9 +410,14 @@ public class Student {
     public Module unplanModule(int index) {
         Module module = getModule(index);
         if (module.getSemester() == null) {
-            throw new PlanException("Module " + index + " is not planned.");
+            logger.warning(() -> String.format(
+                    "Rejected unplan on module %d (%s): not planned",
+                    index, module.getModuleCode()));
+            throw new PlanException(String.format(
+                    "Module %d is not planned.", index));
         }
         module.setSemester(null);
+        assert module.getSemester() == null : "Module should be unplanned after unplanModule";
         return module;
     }
 }

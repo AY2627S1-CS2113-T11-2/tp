@@ -179,14 +179,6 @@ Planned module 1 for Y2S1:
 - A semester outside 1 to 2 shows `Semester must be between 1 and 2, there is an invalid year: 3`.
 - An index that isn't in your list shows an invalid module index message.
 
-### Removing a semester plan: `unplan`
-
-Removes a module's semester assignment while retaining its code, credits, grade and S/U status. The change is saved immediately.
-
-**Format:** `unplan INDEX`
-
-For example, `unplan 1` removes module 1 from its semester plan. An invalid index or an already unplanned module shows an error and does not change your records.
-
 ### Summarising semesters: `summary`
 
 Shows one line per semester containing modules, sorted by year and then semester, followed by an `Unplanned` line.
@@ -205,6 +197,26 @@ Shows one line per semester containing modules, sorted by year and then semester
 Y1S1 | 3 modules | 18 MCs | GPA 4.35
 Y2S1 | 2 modules | 8 MCs | GPA 4.25
 Unplanned | 1 module | 4 MCs
+```
+
+### Removing a module's semester: `unplan`
+
+Removes a module from its semester plan. The module stays in your records, it just no longer has a semester.
+
+**Format:** `unplan INDEX`
+
+- `INDEX` is the module's number in `list`, starting from 1.
+- The module must currently be planned, otherwise you will see an error.
+
+**Examples:**
+
+- `unplan 1` — removes module 1 from its semester plan.
+
+**Expected output:**
+
+```text
+Removed module 1 from its semester plan:
+  CS2113 | 4 MCs | Grade: A-
 ```
 
 ### Showing total GPA: `gpa`
