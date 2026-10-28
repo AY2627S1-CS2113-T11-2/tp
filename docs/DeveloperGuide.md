@@ -148,6 +148,263 @@ sequenceDiagram
 
 This section describes noteworthy details on how certain features are implemented.
 
+### Add Module feature
+
+#### Implementation
+
+The add feature stores a new module in the student's record. The domain-side implementation is provided by `Module` and `Student#addModule(Module)`; command parsing is handled by `AddCommand` as shown in the architecture diagrams.
+
+* `AddCommand` — interprets the user's module details and creates a `Module` before passing it to `Student`. The existing architecture illustrates `add m/CS2113 c/4 g/A-`; the uploaded files do not include `AddCommand`, so its complete parsing and validation rules cannot be confirmed here.
+* `Module` — holds the module code, name, description, modular credits, grade and S/U status. `Grade#fromLabel(String)` converts a grade label (such as `A-`) to the corresponding `Grade` enum and rejects unknown labels.
+* `Student#addModule(Module)` — checks for an existing module with the same code, ignoring letter case, using `isModuleExists`. If a duplicate exists, it logs a warning and throws `DuplicateModuleException`; otherwise, it appends the module to `moduleList`.
+
+Given below is an example usage scenario.
+
+Step 1. The user enters `add m/CS2113 c/4 g/A-` (as illustrated in the architecture section).
+
+Step 2. The add command constructs a `Module` from the parsed details and invokes `Student#addModule(module)`.
+
+Step 3. `Student` checks the module code for duplicates and adds the module to the list if none exists. The command then returns a `Response` for display by `ChatInterface`.
+
+The following sequence diagram focuses on the domain-side add operation.
+
+```mermaid
+sequenceDiagram
+    participant CM as :CommandManager
+    participant AC as :AddCommand
+    participant S as :Student
+    participant M as :Module
+
+    CM->>AC: execute(student)
+    AC->>M: new Module(...)
+    AC->>S: addModule(module)
+    S->>S: isModuleExists(moduleList, moduleCode)
+    alt module code already exists
+        S-->>AC: throws DuplicateModuleException
+    else module code is unique
+        S->>S: moduleList.add(module)
+        S-->>AC: completed
+        AC-->>CM: Response
+    end
+```
+
+**Note:** Duplicate checking is case-insensitive. The uploaded `Module` constructor currently initializes `isSuApplied` to `false` even though it accepts an `isSuApplied` parameter. The command's exact syntax beyond the architecture example should be checked against `AddCommand.java`.
+
+### List All Modules feature
+
+#### Implementation
+
+The list feature displays the student's recorded modules in insertion order. In the uploaded domain code, it is facilitated by `Student#printModuleList()` and `Module#toString()`.
+
+* `Student#printModuleList()` — prints `No modules recorded yet.` if the list is empty. Otherwise, it prints a heading and iterates through `moduleList`, numbering entries from 1.
+* `Module#toString()` — formats each entry as `MODULE_CODE | CREDIT MCs | Grade: GRADE`, with ` [S/U]` appended if S/U has been applied.
+* `Student#getModuleCount()` and `Student#getModule(int)` — provide the count and 1-based indexed access for other commands. `getModule` throws `InvalidIndexException` for an invalid index.
+
+Given below is an example usage scenario.
+
+Step 1. The student has added `CS2113` (4 MCs, A-) and `MA1521` (4 MCs, B+).
+
+Step 2. The user enters `list`. The command dispatch layer selects the list operation (the exact command class is not included in the uploaded files).
+
+Step 3. The displayed list is:
+
+```text
+Here are your recorded modules:
+1. CS2113 | 4 MCs | Grade: A-
+2. MA1521 | 4 MCs | Grade: B+
+```
+
+The following sequence diagram illustrates the existing `Student#printModuleList()` method. The command-to-UI integration cannot be verified without the list command source.
+
+```mermaid
+sequenceDiagram
+    participant Caller as :List caller
+    participant S as :Student
+    participant M as :Module
+    participant Console as :Console
+
+    Caller->>S: printModuleList()
+    alt moduleList is empty
+        S->>Console: print "No modules recorded yet."
+    else moduleList is not empty
+        S->>Console: print heading
+        loop for each module (index starts at 1)
+            S->>M: toString()
+            M-->>S: formatted module details
+            S->>Console: print index and details
+        end
+    end
+```
+
+**Note:** Unlike the general architecture's response-based output design, the uploaded `printModuleList()` prints directly to `System.out`. If the actual list command uses `Response` instead, its implementation should be documented after inspecting that command.
+
+#### Design considerations
+
+**Aspect: How list output is produced**
+
+* **Alternative 1 (current domain implementation):** `Student#printModuleList()` prints the records directly.
+  * Pros: Simple implementation with straightforward numbering and formatting.
+  * Cons: Couples domain logic to console output and makes output testing harder.
+* **Alternative 2:** A list command builds a `Response` and delegates printing to `ChatInterface`.
+  * Pros: Consistent with the layered architecture and easier to test without capturing console output.
+  * Cons: Requires the command or response model to carry the formatted list.
+
+### Target GPA feature
+
+#### Implementation
+
+The target GPA feature is facilitated by `TargetGpaCommand`, `Student#targetGPA(double, int)`, `Student#calculateGpaData()` and `Grade#estimateLetterGrade(double)`. It calculates the average grade point needed over the remaining modular credits to reach a desired cumulative GPA.
+
+* `TargetGpaCommand#parse(String)` — matches `target\\s+(\\S+)\\s+r/(\\S+)`, converts the target to a `double` and the remaining MCs to an `int`, and creates a `TargetGpaCommand`. If the pattern does not match, it returns `Optional.empty()`. Numeric conversion errors can propagate as `NumberFormatException`.
+* `TargetGpaCommand#execute(Student)` — calls `Student#targetGPA(target, remainingMcs)` and wraps the returned message in a `Response`.
+* `Student#calculateGpaData()` — iterates through the recorded modules and returns a private `GpaData` record containing the total weighted grade points and GPA-contributing credits. S/U modules and grades such as `CS` and `CU` are excluded.
+* `Student#targetGPA(double, int)` — checks that the target is greater than 0 and at most 5.0, and that the remaining MCs are positive. It throws `TargetException` for invalid values and `GpaException` when no recorded module contributes to GPA. It then calculates the required average and returns the appropriate message.
+* `Grade#estimateLetterGrade(double)` — provides the approximate letter grade shown alongside a reachable required average.
+
+Let `P` be the current weighted grade-point total, `C` the current GPA-contributing MCs, `F` the remaining MCs, and `T` the target GPA. The required future average `R` is:
+
+\[
+R = \frac{T(C+F)-P}{F}
+\]
+
+Given below is an example usage scenario.
+
+Step 1. The student has recorded `CS2113` (4 MCs, A-) and `MA1521` (4 MCs, B+). The current GPA is 4.25 over 8 MCs, so `P = 34`.
+
+Step 2. The user executes `target 4.50 r/8`. `TargetGpaCommand#parse` constructs a command with target 4.50 and 8 remaining MCs.
+
+Step 3. `execute(student)` calls `Student#targetGPA(4.50, 8)`. The required average is `(4.50 × 16 − 34) / 8 = 4.75`. The returned `Response` includes the current GPA, required grade point and an approximate letter grade.
+
+The following sequence diagram shows how `target 4.50 r/8` is processed.
+
+```mermaid
+sequenceDiagram
+  participant CM as :CommandManager
+  participant TC as TargetGpaCommand
+  participant S as :Student
+  participant M as :Module
+
+  CM->>TC: parse("target 4.50 r/8")
+  create participant T as :TargetGpaCommand
+  TC->>T: new TargetGpaCommand(4.50, 8)
+  TC-->>CM: Optional.of(command)
+
+  CM->>T: execute(student)
+  T->>S: targetGPA(4.50, 8)
+  S->>S: validate target and remaining MCs
+  S->>S: calculateGpaData()
+  loop each recorded module
+    S->>M: isSu(), getGrade(), getCredit()
+    M-->>S: GPA contribution data
+  end
+  S->>S: calculate required average
+  alt required average <= 0
+    S-->>T: target already secured message
+  else required average > 5
+    S-->>T: unreachable target and best achievable GPA
+  else required average within (0, 5]
+    S->>S: Grade.estimateLetterGrade(required average)
+    S-->>T: required average and estimated grade
+  end
+  T-->>CM: Response(message)
+```
+
+**Note:** `Student#targetGPA` handles three outcomes: if `R <= 0`, the target is already secured; if `R > 5`, it reports the best achievable GPA assuming 5.0 in every remaining MC; otherwise it reports `R` and an approximate letter grade. Invalid target values or remaining MCs are rejected before calculation. The current implementation uses `target <= 0` as its lower-bound check, although its exception text describes the interval as inclusive of 0.0.
+
+#### Design considerations
+
+**Aspect: Where the GPA calculation is performed**
+
+* **Alternative 1 (current choice):** `Student#targetGPA` performs the calculation, while `TargetGpaCommand` handles parsing and creates the `Response`.
+  * Pros: Keeps GPA business rules in the domain layer and makes the command straightforward to test.
+  * Cons: Adds calculation and message-formatting responsibilities to `Student`.
+* **Alternative 2:** Calculate the required average inside `TargetGpaCommand`.
+  * Pros: Keeps the calculation close to its command.
+  * Cons: Duplicates GPA-related logic and mixes command processing with domain rules.
+
+**Aspect: How GPA totals are reused**
+
+* **Alternative 1 (current choice):** Use a private `GpaData` record returned by `calculateGpaData()`.
+  * Pros: Both current and target GPA calculations use the same credit-weighted totals and exclusions.
+  * Cons: Requires an additional helper method and record.
+* **Alternative 2:** Recompute totals separately in `calculateGpa()` and `targetGPA()`.
+  * Pros: Fewer helper declarations.
+  * Cons: Repeats iteration logic and risks inconsistent exclusions.
+
+### [Proposed] Filtering Module List feature
+
+#### Proposed Implementation
+
+The proposed filtering feature lets the user display modules planned for a specified year and semester, or modules that have not been assigned a semester. It would be facilitated by a new `FilterCommand`, the existing `Semester` representation proposed for planning, and a new `Student` method that selects matching modules without changing `moduleList`.
+
+* `FilterCommand#parse(String)` — recognizes `filter y/YEAR s/SEM`, validates the supplied year and semester, and constructs a `FilterCommand`. A documented special selection would allow the user to request modules with no assigned semester; the exact syntax for that selection still needs to be agreed upon.
+* `Student#filterModules(Semester)` (proposed) — iterates over `moduleList`, selects modules whose semester matches the requested semester, and retains each module's original 1-based index. An unplanned selection would match modules whose semester is `null`.
+* `FilterCommand#execute(Student)` — obtains the matching modules, formats their original indexes and module details, and returns a `Response` for display through `ChatInterface`.
+
+Given below is an example usage scenario.
+
+Step 1. The student has five modules recorded. `MA1521` is module 2 and `CS2113` is module 5; both are planned for `Y2S1`.
+
+Step 2. The user executes `filter y/2 s/1`. `FilterCommand#parse` creates a command that selects `Y2S1`.
+
+Step 3. The command asks `Student` for matching modules. The output preserves indexes 2 and 5 from the full list, rather than renumbering the results as 1 and 2.
+
+```text
+> filter y/2 s/1
+Modules in Y2S1:
+2. MA1521 | 4 MCs | Grade: B+ | Y2S1
+5. CS2113 | 4 MCs | Grade: A- | Y2S1
+```
+
+The following sequence diagram shows the proposed command flow.
+
+```mermaid
+sequenceDiagram
+  participant CM as :CommandManager
+  participant FC as FilterCommand
+  participant S as :Student
+  participant M as :Module
+
+  CM->>FC: parse("filter y/2 s/1")
+  create participant F as :FilterCommand
+  FC->>F: new FilterCommand(Semester(2, 1))
+  FC-->>CM: Optional.of(command)
+
+  CM->>F: execute(student)
+  F->>S: filterModules(semester)
+  loop i from 0 to moduleList.size() - 1
+    S->>M: getSemester()
+    M-->>S: semester or null
+    alt semester matches
+      S->>S: retain (i + 1, module)
+    end
+  end
+  S-->>F: matching modules with original indexes
+  F-->>CM: Response(formatted results)
+```
+
+**Note:** Filtering must not reorder or remove modules from `Student#moduleList`. Original 1-based indexes are essential because commands such as `delete`, `edit`, `plan` and `unplan` still refer to the full module list. The no-semester filtering syntax and empty-result message are not specified in the issue and remain design decisions.
+
+#### Design considerations
+
+**Aspect: How module indexes are displayed**
+
+* **Alternative 1 (proposed):** Preserve the indexes from the full module list.
+  * Pros: A module displayed as `5` can still be edited or deleted using index 5, avoiding accidental changes to another module.
+  * Cons: The filtered results may have gaps in their numbering.
+* **Alternative 2:** Renumber the filtered results from 1.
+  * Pros: Produces consecutive numbers in the filtered view.
+  * Cons: Conflicts with existing index-based commands and may cause users to modify the wrong module.
+
+**Aspect: How filtering is performed**
+
+* **Alternative 1 (proposed):** Scan the existing `moduleList` for matching semesters whenever `filter` is executed.
+  * Pros: Simple, always reflects the latest planning changes and does not duplicate module storage.
+  * Cons: Takes linear time in the number of modules.
+* **Alternative 2:** Maintain separate lists for each semester.
+  * Pros: Can make repeated semester lookups faster.
+  * Cons: Requires keeping the lists synchronized after add, delete, plan and unplan operations.
+
 ### Index-based module commands
 
 `delete`, `edit`, `plan` and `unplan` all act on one module, chosen by its position in the list shown by `list` (`INDEX`, starting from 1). They share the same flow:
