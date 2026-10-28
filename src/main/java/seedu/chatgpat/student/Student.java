@@ -416,6 +416,11 @@ public class Student {
         return module;
     }
 
+    /**
+     * Filter out the modules by selected semester
+     * @param semester Selected semester
+     * @return indexes ArrayList of the filtered modules
+     */
     public ArrayList<Integer> filterModule(Semester semester) {
         ArrayList<Integer> indexesFiltered = new ArrayList<Integer>();
         for (int i = 0; i < moduleList.size(); i++) {
