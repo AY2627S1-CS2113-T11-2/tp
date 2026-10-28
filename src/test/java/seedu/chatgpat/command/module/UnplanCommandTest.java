@@ -102,5 +102,4 @@ public class UnplanCommandTest {
         assertThrows(InvalidIndexException.class, () -> new UnplanCommand(0).execute(student));
         assertThrows(InvalidIndexException.class, () -> new UnplanCommand(2).execute(student));
     }
-    }
 }
