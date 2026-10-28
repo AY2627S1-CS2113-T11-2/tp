@@ -112,6 +112,33 @@ Here are your recorded modules:
 ```
 Modules planned with `plan` also show their semester at the end of the line, for example `1. CS2113 | 4 MCs | Grade: A- | Y2S1`.
 
+### Filtering modules by semester: `filter`
+
+Shows only the modules planned for a selected year and semester. The module numbers are the same as in the full `list`, so you can use them safely with commands such as `edit`, `delete`, and `unplan`.
+
+**Format:** `filter y/YEAR s/SEM`
+
+- `YEAR` is the year of study, from 1 to 4.
+- `SEM` is the semester, either 1 or 2.
+- Both fields are required, in the order shown.
+- Filtering only changes what is displayed; it does not modify or save your records.
+
+**Example:** `filter y/2 s/1`
+
+**Expected output** (if modules 2 and 5 belong to Year 2 Semester 1):
+
+```text
+Modules in Y2S1:
+2. MA1521 | 4 MCs | Grade: B+ | Y2S1
+5. CS2113 | 4 MCs | Grade: A- | Y2S1
+```
+
+If there are no matching modules, the program displays:
+
+```text
+No modules found in Y2S1.
+```
+
 ### Deleting a module: `delete`
 
 Remove a module from your records.

@@ -382,7 +382,7 @@ sequenceDiagram
   F-->>CM: Response(message)
 ```
 
-**Note:** The current `Student#filterModule` calls `module.getSemester().equals(semester)` without checking for `null`. If an unplanned module is encountered, this can throw `NullPointerException`. The current command also requires both `y/YEAR` and `s/SEM`; filtering unplanned modules is not implemented. The `Semester` constructor handles year/semester range validation. Filtering is read-only and does not request a storage save.
+**Note:** The current `Student#filterModule` calls `Objects.equals(module.getSemester(), semester)` now. Even if an unplanned module is encountered, this function will not `NullPointerException` and it can still compare successfully. However,the current command requires both `y/YEAR` and `s/SEM`; filtering unplanned modules is not implemented. The `Semester` constructor handles year/semester range validation. Filtering is read-only and does not request a storage save.
 
 #### Design considerations
 
