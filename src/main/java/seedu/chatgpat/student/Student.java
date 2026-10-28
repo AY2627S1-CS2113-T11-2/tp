@@ -12,7 +12,6 @@ import seedu.chatgpat.exception.DuplicateModuleException;
 import seedu.chatgpat.exception.EditException;
 import seedu.chatgpat.exception.GpaException;
 import seedu.chatgpat.exception.InvalidIndexException;
-import seedu.chatgpat.exception.NoModuleException;
 import seedu.chatgpat.exception.PlanException;
 import seedu.chatgpat.exception.SuException;
 import seedu.chatgpat.exception.TargetException;
