@@ -15,6 +15,7 @@ The skeleton follows a layered design:
 - **Presentation**: `ChatInterface` reads user input and prints responses.
 - **Dispatch**: `CommandManager` parses user input into a `Command` and executes it.
 - **Domain**: `Student` owns the module list; `Module` represents a single record.
+- **Persistence**: `Storage` reads and writes local text records and returns diagnostics without printing.
 - **Cross-cutting**: `Command` (abstract), `Response`, `Parser`, and the custom exceptions.
 
 The diagram below shows the classes and their dependencies in the skeleton.
@@ -442,17 +443,17 @@ flowchart LR
     * Pros: Fewer commands.
     * Cons: `edit`'s validation gets more tangled, and the year and semester only make sense together.
 
-### [Proposed] Unplan feature
+### Unplan feature
 
-#### Proposed Implementation
+#### Implementation
 
-The proposed unplan feature removes a module's semester again. It is facilitated by a new `UnplanCommand` and `Student#unplanModule(int)`, and reuses `Module#setSemester`.
+The unplan feature removes a module's semester again. It is implemented by `UnplanCommand` and `Student#unplanModule(int)`, and reuses `Module#setSemester`.
 
 * `UnplanCommand#parse(String)` — matches `unplan\s+(\d+)` and returns an `UnplanCommand`. It does not clash with `PlanCommand`, because that parser only claims input that is `plan` or starts with `plan `.
 * `Student#unplanModule(int)` — gets the module with `getModule`. If its semester is `null`, it throws a `PlanException` saying the module is not planned. Otherwise it calls `setSemester(null)` and returns the module.
-* `UnplanCommand#execute(Student)` — returns a `Response` with the message and the module.
+* `UnplanCommand#execute(Student)` — returns `Response.forDataChange` with the message and module, requesting an automatic save.
 
-The following sequence diagram shows how `unplan 1` would be processed.
+The following sequence diagram shows how `unplan 1` is processed.
 
 ```mermaid
 sequenceDiagram
@@ -485,7 +486,7 @@ sequenceDiagram
 
 **Aspect: Unplanning a module that has no semester**
 
-* **Alternative 1 (proposed):** Report an error.
+* **Alternative 1 (current choice):** Report an error.
     * Pros: The user learns that the command had no effect, which usually means a wrong index.
     * Cons: The command is not idempotent.
 * **Alternative 2:** Succeed silently.
@@ -494,12 +495,42 @@ sequenceDiagram
 
 **Aspect: How the user clears a semester**
 
-* **Alternative 1 (proposed):** A separate `unplan` command, paired with `plan` like `su` and `unsu`.
+* **Alternative 1 (current choice):** A separate `unplan` command, paired with `plan` like `su` and `unsu`.
     * Pros: Consistent with the existing command pairs, and easy to remember.
     * Cons: One more command.
 * **Alternative 2:** A special value such as `plan INDEX y/0 s/0`.
     * Pros: No new command.
     * Cons: An unclear special case that makes `Semester` validation harder.
+
+### Local storage
+
+`Storage` owns the UTF-8 file at `data/modules.txt`, relative to the process working directory. Its constructor also accepts a `Path` so tests can use JUnit's `@TempDir`. No file is created by loading a missing path.
+
+The file format has no header and stores one module per physical line. These positions are the persistence contract for future features:
+
+| Position | Field | Validation / default |
+| --- | --- | --- |
+| 1 | Module code | Required, non-empty, no whitespace; case-insensitive uniqueness |
+| 2 | MCs | Required positive Java `int` |
+| 3 | Original grade | Required `Grade` label, including `CS` and `CU` |
+| 4 | S/U flag | `0` or `1`; omitted/empty defaults to `0` |
+| 5 | Semester | `Y1S1` through `Y4S2`, or `-`; omitted/empty is unplanned |
+| 6 | Module name | Omitted/empty defaults to the code |
+| 7 | Module description | Omitted/empty defaults to an empty string |
+
+Fields are separated by unescaped `|`, with optional surrounding spaces. The writer emits all seven fields. The reader accepts three to seven fields, ignores blank lines, and tolerates a UTF-8 byte order mark. Names and descriptions are saved even though `add` currently supplies the code as the name and an empty description.
+
+Escapes are `\|`, `\\`, `\n`, `\r`, `\t`, and `\s` (literal space). The reader trims separator padding before decoding. The writer escapes boundary spaces so they survive a round trip. Unknown or incomplete escapes invalidate only that line. Extra fields currently invalidate a line, helping catch accidental unescaped pipes.
+
+**Extending the format:** Append new optional fields; do not reorder or reuse these positions. Update `Storage`'s parser, writer and field-count limit together, give each added field a default for shorter records, update this table, and add a round-trip test. Backward compatibility means new releases read old records; it does not promise that old releases read new fields.
+
+**Startup:** `ChatGpat.run` calls `Storage.load()`, adds the returned modules to the student, then passes `LoadResult.warnings()` to `ChatInterface.printWelcome`. Validation and duplicate detection happen per line, so a bad record cannot stop later records loading. Read errors return warnings. Storage neither prints nor logs to the console.
+
+**Commands:** Successful mutating commands return `Response.forDataChange(message, module)`. `ChatGpat` checks `isDataChanged()`, saves `student.getModules()`, and passes any save error to `ChatInterface` alongside the command response. Viewing commands use the ordinary response constructors; failed commands throw before returning a save request. Future commands that modify persisted data must use `forDataChange` too.
+
+**Saving:** The writer creates parent directories as needed, writes a sibling temporary file, then replaces the destination atomically where supported (falling back to a normal replacement where atomic moves are unavailable). This avoids truncating the existing file during serialization or writing. I/O and access errors return a message instead of escaping the command loop. Temporary-file cleanup is attempted on success and failure. The in-memory state is retained after a save failure; the next successful mutating command retries the full list.
+
+**Verification:** `StorageTest` covers a real save/load round trip, escaped text, legacy defaults, malformed lines and duplicates, missing/unreadable files, and failed saves. `ChatGpatTest` verifies that each of the seven mutating commands saves before its response, sessions restore saved state, viewing/rejected commands do not rewrite the file, and save errors reach the UI while commands continue working.
 
 ## Product scope
 ### Target user profile

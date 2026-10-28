@@ -1,5 +1,6 @@
 package seedu.chatgpat.service;
 
+import java.util.List;
 import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -30,7 +31,18 @@ public class ChatInterface {
      * Prints the program banner and a welcoming message.
      */
     public void printWelcome() {
-        System.out.print(BANNER + "\nHow may I help you?\n" + DIVIDER);
+        printWelcome(List.of());
+    }
+
+    /**
+     * Prints startup warnings before the first command prompt.
+     *
+     * @param warnings Problems encountered while loading saved modules.
+     */
+    public void printWelcome(List<String> warnings) {
+        System.out.print(BANNER + "\nHow may I help you?\n");
+        printWarnings(warnings);
+        System.out.print(DIVIDER);
     }
 
     /**
@@ -40,13 +52,31 @@ public class ChatInterface {
      * @param response The response answering user input.
      */
     public void printResponse(Response response) {
+        printResponse(response, List.of());
+    }
+
+    /**
+     * Displays a command result and any save failure before printing the next prompt.
+     *
+     * @param response The command result.
+     * @param warnings Storage errors to display alongside the result.
+     */
+    public void printResponse(Response response, List<String> warnings) {
         if (response.hasModule()) {
             System.out.print("\n" + response.message() + "\n  " + response.module() + "\n");
         } else {
             System.out.print("\n" + response.message() + "\n");
         }
+        printWarnings(warnings);
         if (!response.isExit()) {
             System.out.print(DIVIDER);
+        }
+    }
+
+    /** Displays storage diagnostics here so persistence never writes to the console. */
+    private void printWarnings(List<String> warnings) {
+        for (String warning : warnings) {
+            System.out.println("Warning: " + warning);
         }
     }
 

@@ -10,9 +10,7 @@ import seedu.chatgpat.exception.PlanException;
 import seedu.chatgpat.student.Module;
 import seedu.chatgpat.student.Student;
 
-/**
- * Represents the command that removes a module from its semester plan.
- */
+/** Removes a module's semester assignment while keeping the module in the records. */
 public class UnplanCommand extends Command {
     private static final Pattern COMMAND_PATTERN = Pattern.compile("unplan(\\s.*)?");
     private static final Pattern ARGUMENT_PATTERN = Pattern.compile("unplan\\s+(\\d+)");
@@ -22,7 +20,7 @@ public class UnplanCommand extends Command {
     private final int index;
 
     /**
-     * Constructs an UnplanCommand with the given 1-based index.
+     * Constructs the command for the given 1-based module index.
      *
      * @param index The 1-based index of the module to unplan.
      */
@@ -33,19 +31,21 @@ public class UnplanCommand extends Command {
     /**
      * Parses the user input into an UnplanCommand if it starts with the unplan keyword.
      *
-     * @param  userQuery The trimmed user input.
-     * @return           The parsed UnplanCommand, or empty if the input is not an unplan command.
-     * @throws PlanException
-     *         If the input is an unplan command but its arguments are malformed.
+     * @param userQuery The trimmed user input.
+     * @return The parsed UnplanCommand, or empty if the input is not an unplan command.
+     * @throws PlanException If the input is an unplan command but its index is missing,
+     *                       malformed, or too large to parse.
      */
     public static Optional<Command> parse(String userQuery) {
         if (!COMMAND_PATTERN.matcher(userQuery).matches()) {
             return Optional.empty();
         }
+
         Matcher matcher = ARGUMENT_PATTERN.matcher(userQuery);
         if (!matcher.matches()) {
             throw new PlanException(MESSAGE_USAGE);
         }
+
         return Optional.of(new UnplanCommand(parseIndex(matcher.group(1))));
     }
 
@@ -53,7 +53,7 @@ public class UnplanCommand extends Command {
         try {
             return Integer.parseInt(value);
         } catch (NumberFormatException e) {
-            throw new PlanException("Index must be a number, got: " + value);
+            throw new PlanException(MESSAGE_USAGE);
         }
     }
 
@@ -65,6 +65,6 @@ public class UnplanCommand extends Command {
     @Override
     public Response execute(Student student) {
         Module module = student.unplanModule(index);
-        return new Response(String.format(MESSAGE_SUCCESS, index), module);
+        return Response.forDataChange(String.format(MESSAGE_SUCCESS, index), module);
     }
 }

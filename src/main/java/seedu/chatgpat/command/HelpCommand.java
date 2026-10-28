@@ -19,7 +19,9 @@ public class HelpCommand extends Command {
             Available commands:
               help     - Show this command summary.
               gpa      - Show GPA, excluding SU-ed modules and non-GPA grades.
+              summary  - Show module counts, MCs, and GPA by semester, plus unplanned totals.
               su INDEX - Apply SU to a module and show the remaining SU quota.
+              unplan INDEX - Remove a module's semester assignment.
               exit     - Exit ChatGPat.
 
             INDEX is the module's position in your records, starting from 1.

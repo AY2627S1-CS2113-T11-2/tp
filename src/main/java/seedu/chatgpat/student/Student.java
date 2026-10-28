@@ -1,18 +1,24 @@
 package seedu.chatgpat.student;
 
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.OptionalDouble;
+import java.util.TreeMap;
 import java.util.logging.Logger;
 
 import seedu.chatgpat.exception.DuplicateModuleException;
 import seedu.chatgpat.exception.EditException;
 import seedu.chatgpat.exception.GpaException;
 import seedu.chatgpat.exception.InvalidIndexException;
-import seedu.chatgpat.exception.NoModuleException;
 import seedu.chatgpat.exception.PlanException;
 import seedu.chatgpat.exception.SuException;
 import seedu.chatgpat.exception.TargetException;
 
-
+/**
+ * Stores a student's modules and manages their grades, semester plans, and SU quota.
+ */
 public class Student {
     private static final Logger logger =
         Logger.getLogger(Student.class.getName());
@@ -71,22 +77,13 @@ public class Student {
     }
 
     /**
-     * Print all modules that user has entered
-     * @throws NoModuleException if there is no module exist in the system.
+     * Returns an unmodifiable copy of the module list in display order for saving.
+     * Module objects retain their current field values.
+     *
+     * @return The modules in their current order.
      */
-    public void printModuleList() {
-        if (moduleList.isEmpty()) {
-            logger.warning(() -> "No modules in this student");
-            throw new NoModuleException();
-        }
-
-        System.out.println("Here are your recorded modules:");
-        for (int i = 0; i < moduleList.size(); i++) {
-            Module module = moduleList.get(i);
-            // String.format outputs "1. CS2113 | 4 MCs | Grade: A-"
-            System.out.println((i + 1) + ". " + module.toString());
-        }
-        return;
+    public List<Module> getModules() {
+        return List.copyOf(moduleList);
     }
 
     /**
@@ -217,15 +214,17 @@ public class Student {
     }
 
     /**
-     * a helper function that calculates the student's total grade points and total credits,
+     * Calculates total grade points and GPA-contributing credits for the given modules,
      * excluding modules that do not affect GPA (SU-ed modules, and modules with grades such as CS or CU).
-     * @return GpaDate (a package including total grade points and total credits)
+     *
+     * @param modules The modules to include in the calculation.
+     * @return The weighted grade points and GPA-contributing credits.
      */
-    private GpaData calculateGpaData() {
+    private GpaData calculateGpaData(Iterable<Module> modules) {
         double totalGradePoints = 0.0;
         int totalCredits = 0;
 
-        for (Module module : moduleList) {
+        for (Module module : modules) {
             if (module.isSu()) {
                 continue;
             }
@@ -250,7 +249,7 @@ public class Student {
      * @throws GpaException If no module contributes to GPA.
      */
     public double calculateGpa() {
-        GpaData data = calculateGpaData();
+        GpaData data = calculateGpaData(moduleList);
 
         if (data.totalCredits() == 0) {
             logger.warning(
@@ -265,6 +264,38 @@ public class Student {
                 : "GPA should be within [0, 5]";
 
         return gpa;
+    }
+
+    /**
+     * Summarises occupied semesters in year and term order, followed by unplanned modules.
+     * All modules count towards module and MC totals; GPA uses the same exclusions as {@link #calculateGpa()}.
+     * The unplanned summary is always included and has no GPA.
+     *
+     * @return The semester summaries, with the unplanned summary last.
+     */
+    public List<SemesterSummary> getSemesterSummaries() {
+        Comparator<Semester> order = Comparator.comparingInt(Semester::year).thenComparingInt(Semester::term);
+        Map<Semester, List<Module>> groups = new TreeMap<>(Comparator.nullsLast(order));
+        groups.put(null, new ArrayList<>());
+        for (Module module : moduleList) {
+            groups.computeIfAbsent(module.getSemester(), semester -> new ArrayList<>()).add(module);
+        }
+
+        List<SemesterSummary> summaries = new ArrayList<>();
+        for (Map.Entry<Semester, List<Module>> entry : groups.entrySet()) {
+            List<Module> modules = entry.getValue();
+            int totalCredits = 0;
+            for (Module module : modules) {
+                totalCredits += module.getCredit();
+            }
+            GpaData data = calculateGpaData(modules);
+            OptionalDouble gpa = OptionalDouble.empty();
+            if (entry.getKey() != null && data.totalCredits() > 0) {
+                gpa = OptionalDouble.of(data.totalGradePoints() / data.totalCredits());
+            }
+            summaries.add(new SemesterSummary(entry.getKey(), modules.size(), totalCredits, gpa));
+        }
+        return summaries;
     }
 
     /**
@@ -322,7 +353,7 @@ public class Student {
             logger.warning("Reject targetGPA calculation: remainingMCs is non-positive.");
             throw new TargetException("Remaining MCs must be positive.");
         }
-        GpaData data = calculateGpaData();
+        GpaData data = calculateGpaData(moduleList);
         if (data.totalCredits() == 0) {
             throw new GpaException(
                     "No modules contribute to GPA. Add a graded module first.");
@@ -367,17 +398,13 @@ public class Student {
         return module;
     }
 
-
     /**
-     * Removes the semester of the module at the given 1-based index.
-     * The module stays in the record and is marked as not planned.
+     * Removes the semester assignment from a module.
      *
-     * @param  index The 1-based index of the module to unplan.
-     * @return       The unplanned module.
-     * @throws InvalidIndexException
-     *         If the index is out of range.
-     * @throws PlanException
-     *         If the module is not planned.
+     * @param index The 1-based module index.
+     * @return The module with no semester assigned.
+     * @throws InvalidIndexException If the index is out of range.
+     * @throws PlanException If the module is already unplanned.
      */
     public Module unplanModule(int index) {
         Module module = getModule(index);
