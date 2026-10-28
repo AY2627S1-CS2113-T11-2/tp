@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.OptionalDouble;
 import java.util.TreeMap;
 import java.util.logging.Logger;
+import java.util.Objects;
 
 import seedu.chatgpat.exception.DuplicateModuleException;
 import seedu.chatgpat.exception.EditException;
@@ -426,7 +427,7 @@ public class Student {
         for (int i = 0; i < moduleList.size(); i++) {
             Module module = moduleList.get(i);
 
-            if (module.getSemester().equals(semester)) {
+            if (Objects.equals(module.getSemester(), semester)) {
                 indexesFiltered.add(i + 1);
             }
         }

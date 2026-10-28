@@ -141,4 +141,27 @@ public class FilterCommandTest {
         assertThrows(PlanException.class,
                 () -> command.execute(student));
     }
+
+    /**
+     * Tests that unplanned modules are excluded when filtering
+     * modules by a specific semester.
+     */
+    @Test
+    public void execute_unplannedModules_excludedFromFilter() {
+        // Add a module without assigning a semester.
+        student.addModule(new Module(
+                "MA1521", "test", "none", 4, Grade.B_PLUS, false));
+
+        Command command = FilterCommand.parse(
+                "filter y/2 s/2").orElseThrow();
+
+        Response response = command.execute(student);
+
+        String expected = "Modules in Y2S2:"
+                + System.lineSeparator()
+                + "1. CS2113 | 4 MCs | Grade: A- | Y2S2"
+                + System.lineSeparator();
+
+        assertEquals(expected, response.message());
+    }
 }
