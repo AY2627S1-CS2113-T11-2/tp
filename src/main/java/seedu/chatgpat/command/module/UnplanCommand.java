@@ -19,34 +19,34 @@ public class UnplanCommand extends Command {
 
     private final int index;
 
-/**
- * Constructs the command for the given 1-based module index.
- *
- * @param index The 1-based index of the module to unplan.
- */
+    /**
+     * Constructs the command for the given 1-based module index.
+     *
+     * @param index The 1-based index of the module to unplan.
+     */
     public UnplanCommand(int index) {
         this.index = index;
     }
 
     /**
- * Parses the user input into an UnplanCommand if it starts with the unplan keyword.
- *
- * @param userQuery The trimmed user input.
- * @return The parsed UnplanCommand, or empty if the input is not an unplan command.
- * @throws PlanException If the input is an unplan command but its index is missing,
- *                       malformed, or too large to parse.
- */
+     * Parses the user input into an UnplanCommand if it starts with the unplan keyword.
+     *
+     * @param userQuery The trimmed user input.
+     * @return The parsed UnplanCommand, or empty if the input is not an unplan command.
+     * @throws PlanException If the input is an unplan command but its index is missing,
+     *                       malformed, or too large to parse.
+     */
     public static Optional<Command> parse(String userQuery) {
         if (!COMMAND_PATTERN.matcher(userQuery).matches()) {
             return Optional.empty();
-    }
+        }
 
-    Matcher matcher = ARGUMENT_PATTERN.matcher(userQuery);
+        Matcher matcher = ARGUMENT_PATTERN.matcher(userQuery);
         if (!matcher.matches()) {
             throw new PlanException(MESSAGE_USAGE);
-    }
+        }
 
-    return Optional.of(new UnplanCommand(parseIndex(matcher.group(1))));
+        return Optional.of(new UnplanCommand(parseIndex(matcher.group(1))));
     }
 
     private static int parseIndex(String value) {
