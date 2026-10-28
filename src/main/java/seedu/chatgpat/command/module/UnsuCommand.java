@@ -54,6 +54,6 @@ public class UnsuCommand extends Command {
         Module module = student.removeSu(index);
         int remaining = student.getRemainingSuQuota();
         String message = String.format(MESSAGE_SUCCESS, index, module, remaining);
-        return new Response(message, module);
+        return Response.forDataChange(message, module);
     }
 }

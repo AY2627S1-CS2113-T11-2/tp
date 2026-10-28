@@ -15,6 +15,35 @@ ChatGPat is a desktop application for managing student grades, optimized for use
 
 ## Features
 
+### Saving and editing local data
+
+ChatGPat loads your records from `data/modules.txt` when it starts. This path is relative to the folder where you run the program. There is no database. A missing file starts an empty session, and the folder and file are created on the first successful data-changing command.
+
+Successful `add`, `edit`, `delete`, `su`, `unsu`, `plan`, and `unplan` commands save immediately. Viewing commands and rejected commands do not rewrite the file. Deleting the last module saves an empty file.
+
+To edit records yourself, exit ChatGPat and open the file in a text editor using **UTF-8** encoding. Each module occupies one line, in this field order:
+
+```text
+code | MCs | grade | S/U flag | semester | name | description
+```
+
+For example (the file itself has no header):
+
+```text
+CS2113 | 4 | A- | 0 | Y2S1 | CS2113 |
+MA1521 | 4 | B+ | 1 | - | MA1521 |
+```
+
+- Code, MCs and grade are required. Codes must be non-empty without whitespace, MCs must be positive integers, and grades must be recognised by ChatGPat.
+- S/U is `0` or `1`; the original letter grade is retained even when S/U is applied.
+- Semester is `Y1S1` through `Y4S2`, or `-` for unplanned.
+- Missing or empty optional fields default to S/U `0`, unplanned semester, name equal to the code, and an empty description. Your older three-, four- and five-field records still load.
+- Spaces around separators and blank lines are ignored. For literal special characters inside a field, use `\|` for a pipe, `\\` for a backslash, `\n` for a newline, `\r` for a carriage return, `\t` for a tab, and `\s` for a space that must be preserved at a field's edge.
+
+Malformed lines are skipped with a warning naming the file, line number and reason. Loading continues with the other lines; duplicate codes are treated case-insensitively and the first valid record wins. Loading does not change your file. The next successful save writes the loaded records and any changes, so skipped lines will no longer be in the file.
+
+Read and save errors appear in the terminal without closing the program. If saving fails, your changes remain in memory: fix the file or folder access, then run a data-changing command to retry before exiting.
+
 ### Notes about the command format
 
 - Words in `UPPER_CASE` are the parameters to be supplied by the user.
@@ -39,6 +68,7 @@ Available commands:
   gpa      - Show GPA, excluding SU-ed modules and non-GPA grades.
   summary  - Show module counts, MCs, and GPA by semester, plus unplanned totals.
   su INDEX - Apply SU to a module and show the remaining SU quota.
+  unplan INDEX - Remove a module's semester assignment.
   exit     - Exit ChatGPat.
 
 INDEX is the module's position in your records, starting from 1.
@@ -148,6 +178,14 @@ Planned module 1 for Y2S1:
 - A year outside 1 to 4 shows `Year must be between 1 and 4, there is an invalid year: 9`.
 - A semester outside 1 to 2 shows `Semester must be between 1 and 2, there is an invalid year: 3`.
 - An index that isn't in your list shows an invalid module index message.
+
+### Removing a semester plan: `unplan`
+
+Removes a module's semester assignment while retaining its code, credits, grade and S/U status. The change is saved immediately.
+
+**Format:** `unplan INDEX`
+
+For example, `unplan 1` removes module 1 from its semester plan. An invalid index or an already unplanned module shows an error and does not change your records.
 
 ### Summarising semesters: `summary`
 

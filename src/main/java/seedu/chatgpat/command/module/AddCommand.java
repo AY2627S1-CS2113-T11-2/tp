@@ -114,6 +114,6 @@ public class AddCommand extends Command {
                 MESSAGE_SUCCESS,
                 module.getModuleCode(), module.getCredit(),
                 module.getGrade().getLabel(), count, plural);
-        return new Response(message, module);
+        return Response.forDataChange(message, module);
     }
 }

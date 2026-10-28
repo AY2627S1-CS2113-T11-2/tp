@@ -103,6 +103,6 @@ public class EditCommand extends Command {
     @Override
     public Response execute(Student student) {
         Module module = student.editModule(index, newCode, newCredit, newGrade);
-        return new Response(String.format(MESSAGE_SUCCESS, index), module);
+        return Response.forDataChange(String.format(MESSAGE_SUCCESS, index), module);
     }
 }

@@ -13,7 +13,7 @@ import seedu.chatgpat.exception.EditException;
 import seedu.chatgpat.exception.GpaException;
 import seedu.chatgpat.exception.InvalidIndexException;
 import seedu.chatgpat.exception.SuException;
-import seedu.chatgpat.exception.NoModuleException;
+import seedu.chatgpat.exception.PlanException;
 import seedu.chatgpat.exception.TargetException;
 
 /**
@@ -77,22 +77,13 @@ public class Student {
     }
 
     /**
-     * Print all modules that user has entered
-     * @throws NoModuleException if there is no module exist in the system.
+     * Returns an unmodifiable copy of the module list in display order for saving.
+     * Module objects retain their current field values.
+     *
+     * @return The modules in their current order.
      */
-    public void printModuleList() {
-        if (moduleList.isEmpty()) {
-            logger.warning(() -> "No modules in this student");
-            throw new NoModuleException();
-        }
-
-        System.out.println("Here are your recorded modules:");
-        for (int i = 0; i < moduleList.size(); i++) {
-            Module module = moduleList.get(i);
-            // String.format outputs "1. CS2113 | 4 MCs | Grade: A-"
-            System.out.println((i + 1) + ". " + module.toString());
-        }
-        return;
+    public List<Module> getModules() {
+        return List.copyOf(moduleList);
     }
 
     /**
@@ -404,6 +395,23 @@ public class Student {
         module.setSemester(semester);
         logger.info(() -> String.format("Planned module %d (%s) for %s",
                 index, module.getModuleCode(), semester));
+        return module;
+    }
+
+    /**
+     * Removes the semester assignment from a module.
+     *
+     * @param index The 1-based module index.
+     * @return The module with no semester assigned.
+     * @throws InvalidIndexException If the index is out of range.
+     * @throws PlanException If the module is already unplanned.
+     */
+    public Module unplanModule(int index) {
+        Module module = getModule(index);
+        if (module.getSemester() == null) {
+            throw new PlanException("Module " + index + " is not planned.");
+        }
+        module.setSemester(null);
         return module;
     }
 }
