@@ -84,7 +84,7 @@ public class UnplanCommandTest {
 
         assertNull(module.getSemester());
         assertEquals(module, response.module());
-        assertEquals("CS2113 | 4 MCs | Grade: A-", response.module().toString());
+        assertEquals("CS2113 | 4 MCs | Grade: A- [S/U]", response.module().toString());
         assertEquals(1, student.getModuleCount());
         assertTrue(module.isSu());
         assertEquals(Grade.A_MINUS, module.getGrade());
