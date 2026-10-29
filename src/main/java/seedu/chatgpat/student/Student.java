@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.OptionalDouble;
 import java.util.TreeMap;
+import java.util.function.Predicate;
 import java.util.logging.Logger;
 
 import seedu.chatgpat.exception.DuplicateModuleException;
@@ -417,22 +418,40 @@ public class Student {
     }
 
     /**
-     * Filter out the modules by selected semester
-     * @param semester Selected semester
-     * @return indexes ArrayList of the filtered modules
+     * Returns the 1-based indexes of the modules planned for the given semester.
+     * The indexes are positions in the full module list, so they can be used with other commands.
+     *
+     * @param semester The semester to filter by.
+     * @return The indexes of the matching modules, in list order.
      */
     public ArrayList<Integer> filterModule(Semester semester) {
-        ArrayList<Integer> indexesFiltered = new ArrayList<Integer>();
-        for (int i = 0; i < moduleList.size(); i++) {
-            Module module = moduleList.get(i);
-
-            if (semester.equals(module.getSemester())) {
-                indexesFiltered.add(i + 1);
-            }
-        }
-
-        return indexesFiltered;
+        return filterIndexes(module -> semester.equals(module.getSemester()));
     }
 
+    /**
+     * Returns the 1-based indexes of the modules that are not planned for any semester.
+     * The indexes are positions in the full module list, so they can be used with other commands.
+     *
+     * @return The indexes of the unplanned modules, in list order.
+     */
+    public ArrayList<Integer> filterUnplannedModules() {
+        return filterIndexes(module -> module.getSemester() == null);
+    }
+
+    /**
+     * Returns the 1-based indexes of the modules that satisfy the given condition.
+     *
+     * @param condition The condition a module must satisfy.
+     * @return The indexes of the matching modules, in list order.
+     */
+    private ArrayList<Integer> filterIndexes(Predicate<Module> condition) {
+        ArrayList<Integer> indexes = new ArrayList<>();
+        for (int i = 0; i < moduleList.size(); i++) {
+            if (condition.test(moduleList.get(i))) {
+                indexes.add(i + 1);
+            }
+        }
+        return indexes;
+    }
 }
 

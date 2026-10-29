@@ -1,0 +1,46 @@
+@startuml
+!include style.puml
+participant ":CommandManager" as CM
+participant "<<class>>\nTargetGpaCommand" as TC
+participant ":TargetGpaCommand" as T
+participant ":Student" as S
+participant ":Module" as M
+participant "<<class>>\nGrade" as G
+[-> CM : processQuery("target 4.50 r/8")
+activate CM
+CM -> TC : parse("target 4.50 r/8")
+activate TC
+create T
+TC -> T : new TargetGpaCommand(4.50, 8)
+TC --> CM : Optional.of(command)
+deactivate TC
+CM -> T : execute(student)
+activate T
+T -> S : targetGPA(4.50, 8)
+activate S
+S -> S : validate target and remaining MCs
+S -> S : calculateGpaData()
+loop [for each recorded module]
+  S -> M : isSu(), getGrade(), getCredit()
+  activate M
+  M --> S : GPA contribution data
+  deactivate M
+end
+S -> S : calculate required average R
+alt [R <= 0]
+  S --> T : target already secured message
+else [R > 5]
+  S --> T : unreachable target message
+else [0 < R <= 5]
+  S -> G : estimateLetterGrade(R)
+  activate G
+  G --> S : approximate letter grade
+  deactivate G
+  S --> T : required average and estimated grade
+end
+deactivate S
+T --> CM : Response(message)
+deactivate T
+CM -->] : Response
+deactivate CM
+@enduml

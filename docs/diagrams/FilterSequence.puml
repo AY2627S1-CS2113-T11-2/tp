@@ -1,0 +1,41 @@
+@startuml
+!include style.puml
+
+participant ":CommandManager" as CM
+participant "<<class>>\nFilterCommand" as FC
+participant ":FilterCommand" as F
+participant ":Semester" as Sem
+participant ":Student" as S
+
+[-> CM ++ : processQuery("filter y/2 s/1")
+CM -> FC ++ : parse("filter y/2 s/1")
+create F
+FC -> F : FilterCommand(2, 1)
+activate F
+F --> FC
+deactivate F
+FC --> CM -- : Optional.of(command)
+
+CM -> F ++ : execute(student)
+create Sem
+F -> Sem : Semester(2, 1)
+activate Sem
+Sem --> F
+deactivate Sem
+F -> S ++ : filterModule(semester)
+S -> S ++ : filterIndexes(condition)
+loop for each module in moduleList
+    S -> S : condition.test(module)
+end
+S --> S -- : indexes
+S --> F -- : [2, 5]
+F -> FC ++ : formatResult(header, emptyMessage,\nindexes, student)
+loop for each index
+    FC -> S ++ : getModule(index)
+    S --> FC -- : module
+end
+FC --> F -- : message
+F --> CM -- : Response
+destroy F
+[<-- CM -- : Response
+@enduml

@@ -1,0 +1,33 @@
+@startuml
+!include style.puml
+
+abstract class Command {
+    + {abstract} execute(student : Student) : Response
+}
+
+class FilterCommand {
+    - year : int
+    - semester : int
+    + {static} parse(input : String) : Optional<Command>
+    + execute(student : Student) : Response
+    ~ {static} formatResult(header : String, emptyMessage : String,\n    indexes : List<Integer>, student : Student) : String
+}
+
+class FilterUnplannedCommand {
+    + {static} parse(input : String) : Optional<Command>
+    + execute(student : Student) : Response
+}
+
+class Student {
+    + filterModule(semester : Semester) : ArrayList<Integer>
+    + filterUnplannedModules() : ArrayList<Integer>
+    - filterIndexes(condition : Predicate<Module>) : ArrayList<Integer>
+    + getModule(index : int) : Module
+}
+
+Command <|-- FilterCommand
+Command <|-- FilterUnplannedCommand
+FilterUnplannedCommand .left.> FilterCommand : formatResult >
+FilterCommand ..> Student
+FilterUnplannedCommand ..> Student
+@enduml
