@@ -642,25 +642,141 @@ This lets the student make informed S/U decisions and plan ahead which modules t
 
 ## Glossary
 
-* *glossary item* - Definition
+* *GPA* - Grade point average: the average of the grade points of the recorded modules, weighted by their MCs. NUS calls this the CAP, but ChatGpat calls it GPA.
+* *Grade point* - The number that a letter grade is worth on the NUS scale. It is used in the GPA calculation.
+* *MC* - Modular Credit: the weight of a module. A module worth 4 MCs counts twice as much in the GPA as a module worth 2 MCs.
+* *S/U (SU)* - The NUS option to have a module graded Satisfactory/Unsatisfactory instead of with a letter grade, so that it does not count towards the GPA. In ChatGpat, applying SU to a module only leaves it out of the GPA calculation, so that the student can see the effect. It does not change anything in the real NUS records.
+* *SU quota* - The number of MCs of modules a student may S/U. ChatGpat shows the remaining quota after each `su` and `unsu`.
+* *Index* - The position of a module in the list shown by `list`, starting from 1. Commands such as `edit`, `delete`, `su`, `unsu`, `plan` and `unplan` use it to pick a module.
+* *Semester notation* - A semester is written as `Y2S1`, meaning year 2, semester 1. Years go from 1 to 4 and semesters from 1 to 2.
+* *Planned module* - A module that has been placed in a year and semester with `plan`. A module that has not is an *unplanned module*.
+* *Target GPA* - The GPA that the student wants to reach. The `target` command shows the average grade needed in the remaining MCs to reach it.
+* *SEP* - The NUS Student Exchange Programme.
+* *CLI* - Command-line interface: an application that the user controls by typing commands.
+* *Mainstream OS* - Windows, Linux, Unix and macOS.
 
 ## Instructions for manual testing
 
-1. Filtering by semester
-  1. Prerequisites: plan module 1 with `plan 1 y/2 s/1` and module 2 with `plan 2 y/3 s/1`.
-  1. Test case: `filter y/2 s/1`<br>
-     Expected: `Modules in Y2S1:` followed by module 1 with its original number. Module 2 is not shown.
-  1. Test case: `filter y/3 s/2`<br>
-     Expected: `No modules found in Y3S2.`
-  1. Test case: `filter y/9 s/1`<br>
-     Expected: An error saying the year is invalid.
+Given below are instructions to test ChatGpat manually.
 
-1. Filtering unplanned modules
-  1. Prerequisites: module 1 and module 2 are planned, module 3 is not.
-  1. Test case: `filter unplanned`<br>
-     Expected: `Modules not planned for any semester:` followed by module 3 with its original number.
-  1. Test case: plan module 3, then `filter unplanned`<br>
-     Expected: `All modules are planned.`
-  1. Test case: delete every module, then `filter unplanned`<br>
-     Expected: `No modules recorded yet.`
+**Note:** These instructions only provide a starting point for testers. Testers are expected to do more exploratory testing. All tests assume you start ChatGpat as described in the User Guide.
 
+### Launch and exit
+
+#### Showing the help message
+
+1. Test case: `help`<br>Expected: `Available commands:` followed by every command with its format: `help`, `add`, `list`, `edit`, `delete`, `gpa`, `summary`, `su`, `unsu`, `quota`, `target`, `plan`, `unplan`, `filter` and `exit`.
+
+#### Exiting the program
+
+1. Test case: `exit`<br>Expected: `Goodbye!` is shown and the program ends.
+
+#### Unknown commands
+
+1. Test case: `hello`<br>Expected: An error saying the command is not known. The program keeps running.
+
+### Adding and listing modules
+
+#### Adding modules
+
+Prerequisites: no modules are recorded. `list` shows `No modules recorded yet.`
+
+1. Test case: `add m/CS2113 c/4 g/A-`<br>Expected: `New module added: CS2113 (4 MCs, Grade: A-)` and `You now have 1 module recorded.`
+1. Test case: `add m/MA1521 c/4 g/B+`, then `add m/CS2040 c/4 g/A`<br>Expected: The module is added each time, and the count goes to 2 and then 3.
+1. Test case: `add m/CS2113 c/4 g/A-` again<br>Expected: An error saying the module is already recorded. The count does not change.
+1. Test case: `add CS2113`<br>Expected: An error. Nothing is added.
+
+#### Listing modules
+
+Prerequisites: the three modules above are recorded.
+
+1. Test case: `list`<br>Expected: `Here are your recorded modules:` followed by three modules, numbered 1 to 3 in the order they were added, each with its MCs and grade.
+
+### Editing and deleting modules
+
+#### Editing a module
+
+Prerequisites: the three modules above are recorded.
+
+1. Test case: `edit 2 c/5 g/A`<br>Expected: `Updated module 2:` followed by MA1521 with 5 MCs and grade A. The code is unchanged.
+1. Test case: `edit 2 c/4 g/B+`<br>Expected: Module 2 is back to 4 MCs and grade B+. Run this to restore the data for the later tests.
+1. Test case: `edit 2`<br>Expected: An error showing the usage of `edit`. Module 2 is unchanged.
+1. Test case: `edit 99 g/A`<br>Expected: An error about an invalid index. Nothing is changed.
+1. Test case: `edit 1 m/MA1521`<br>Expected: An error, because another module already uses that code. Module 1 is unchanged.
+
+#### Deleting a module
+
+Prerequisites: the three modules above are recorded.
+
+1. Test case: `delete 3`<br>Expected: `Removed module 3:` followed by CS2040. `list` now shows two modules.
+1. Test case: `add m/CS2040 c/4 g/A`<br>Expected: CS2040 is back as module 3. Run this to restore the data for the later tests.
+1. Test case: `delete 99`<br>Expected: An error about an invalid index. No module is removed.
+
+### GPA and S/U
+
+#### Showing the GPA
+
+Prerequisites: CS2113 (4 MCs, A-), MA1521 (4 MCs, B+) and CS2040 (4 MCs, A) are recorded as modules 1 to 3.
+
+1. Test case: `gpa`<br>Expected: `Your GPA is 4.50`, which is the weighted average of 4.5, 4.0 and 5.0 on the NUS scale.
+
+#### Applying and removing S/U
+
+Prerequisites: the same three modules, none marked S/U.
+
+1. Test case: `su 2`<br>Expected: `Applied SU on module 2:` followed by the module and `Remaining SU quota:` with a number of MCs.
+1. Test case: `gpa`<br>Expected: `Your GPA is 4.75`. Module 2 is no longer counted.
+1. Test case: `quota`<br>Expected: `Modules SU-ed so far:` followed by module 2.
+1. Test case: `su 2` again<br>Expected: An error, because the module already has SU applied. Nothing is changed.
+1. Test case: `unsu 2`<br>Expected: `Removed SU on module 2:` followed by the module and the remaining SU quota, which is back to what it was before `su 2`. `gpa` again shows `Your GPA is 4.50`.
+1. Test case: `su 99`<br>Expected: An error about an invalid index. Nothing is changed.
+
+#### Checking the quota when nothing is SU-ed
+
+Prerequisites: no module is marked S/U.
+
+1. Test case: `quota`<br>Expected: `No modules have been SU-ed yet.`
+
+### Target GPA and summary
+
+#### Calculating the average grade needed
+
+Prerequisites: the same three modules, none marked S/U.
+
+1. Test case: `target 4.5 r/12`<br>Expected: A message stating the average grade needed in the remaining 12 MCs to reach a GPA of 4.5, or that the target cannot be reached.
+1. Test case: `target 4.5`<br>Expected: An error, because the remaining MCs (`r/`) are missing. No result is shown.
+
+#### Showing the summary
+
+Prerequisites: the same three modules, none planned.
+
+1. Test case: `summary`<br>Expected: The module count, MCs and GPA for each semester that has modules, and the totals for the unplanned modules. All three modules are counted as unplanned.
+1. Test case: plan two of them with the commands in the next section, then `summary`<br>Expected: The planned modules are counted under their semesters. Only the rest are counted as unplanned.
+
+### Planning, unplanning and filtering
+
+#### Planning and unplanning a module
+
+Prerequisites: at least three modules are recorded, and `list` shows no semester on any of them.
+
+1. Test case: `plan 1 y/2 s/1`<br>Expected: The response starts with `Planned module 1 for Y2S1:`, and `list` now shows `Y2S1` on module 1.
+1. Test case: `plan 1 y/5 s/1`<br>Expected: An error saying the year is invalid. Module 1 is unchanged.
+1. Test case: `plan 99 y/1 s/1`<br>Expected: An error about an invalid index. Nothing is changed.
+1. Test case: `unplan 1`<br>Expected: The response starts with `Removed module 1 from its semester plan:`, and `list` no longer shows a semester on module 1.
+1. Test case: `unplan 1` again<br>Expected: An error saying the module is not planned.
+
+#### Filtering by semester
+
+Prerequisites: plan module 1 with `plan 1 y/2 s/1` and module 2 with `plan 2 y/3 s/1`.
+
+1. Test case: `filter y/2 s/1`<br>Expected: `Modules in Y2S1:` followed by module 1 with its original number. Module 2 is not shown.
+1. Test case: `filter y/3 s/2`<br>Expected: `No modules found in Y3S2.`
+1. Test case: `filter y/9 s/1`<br>Expected: An error saying the year is invalid.
+
+#### Filtering unplanned modules
+
+Prerequisites: module 1 and module 2 are planned, module 3 is not.
+
+1. Test case: `filter unplanned`<br>Expected: `Modules not planned for any semester:` followed by module 3 with its original number.
+1. Test case: plan module 3, then `filter unplanned`<br>Expected: `All modules are planned.`
+1. Test case: delete every module, then `filter unplanned`<br>Expected: `No modules recorded yet.`
