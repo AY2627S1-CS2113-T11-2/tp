@@ -1,0 +1,36 @@
+@startuml
+participant ":CommandManager" as CM
+participant ":UnsuCommand" as C
+participant ":Student" as S
+participant ":Module" as M
+
+CM -> C : parse("unsu 2")
+activate C
+C -> C : new UnsuCommand(2)
+C --> CM : Optional.of(command)
+deactivate C
+
+CM -> C : execute(student)
+activate C
+C -> S : removeSu(2)
+activate S
+S -> S : getModule(2)
+alt module is not SU-ed
+    S --> C : throws SuException
+    note over C, CM : Exception propagates; no save requested
+else module is SU-ed
+    S -> M : setSu(false)
+    activate M
+    M --> S : ok
+    deactivate M
+    S --> C : module
+    deactivate S
+    C -> S : getRemainingSuQuota()
+    activate S
+    S -> S : getUsedSuMcs()
+    S --> C : 28
+    deactivate S
+    C --> CM : Response.forDataChange(message, module)
+end
+deactivate C
+@enduml
