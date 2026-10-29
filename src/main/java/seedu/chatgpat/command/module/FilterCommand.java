@@ -5,7 +5,7 @@ import seedu.chatgpat.command.Response;
 import seedu.chatgpat.student.Semester;
 import seedu.chatgpat.student.Student;
 
-import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
@@ -36,19 +36,39 @@ public class FilterCommand extends Command {
 
         return Optional.of(new FilterCommand(year, semester));
     }
-    @Override
-    public Response execute(Student student){
-        String message = "";
-        Semester semester = new Semester(this.year, this.semester);
-        ArrayList<Integer> filteredIndexes = student.filterModule(semester);
-        if (filteredIndexes.isEmpty()) {
-            message += String.format("No modules found in Y%dS%d.", this.year, this.semester);
-        }else{
-            message += String.format("Modules in Y%dS%d:%n", this.year, this.semester);
-            for (int i : filteredIndexes) {
-                message += String.format("%d. ",i) + student.getModule(i).toString()+String.format("%n");
-            }
+
+    /**
+     * Builds the response text for a filtered list of modules.
+     *
+     * @param header       The line shown before the matching modules.
+     * @param emptyMessage The message shown when no module matches.
+     * @param indexes      The 1-based indexes, in the full list, of the matching modules.
+     * @param student      The student whose modules are listed.
+     * @return The formatted message.
+     */
+    static String formatResult(String header, String emptyMessage,
+                               List<Integer> indexes, Student student) {
+        if (indexes.isEmpty()) {
+            return emptyMessage;
         }
+        StringBuilder message = new StringBuilder(header + String.format("%n"));
+        for (int index : indexes) {
+            message.append(String.format("%d. ", index))
+                    .append(student.getModule(index))
+                    .append(String.format("%n"));
+        }
+        return message.toString();
+    }
+
+    @Override
+    public Response execute(Student student) {
+        Semester semester = new Semester(this.year, this.semester);
+        String label = semester.toString();
+        String message = formatResult(
+                String.format("Modules in %s:", label),
+                String.format("No modules found in %s.", label),
+                student.filterModule(semester),
+                student);
         return new Response(message);
     }
 }
