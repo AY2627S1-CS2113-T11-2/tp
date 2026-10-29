@@ -17,12 +17,22 @@ public class HelpCommand extends Command {
      */
     private static final String MESSAGE_HELP = """
             Available commands:
-              help     - Show this command summary.
-              gpa      - Show GPA, excluding SU-ed modules and non-GPA grades.
-              summary  - Show module counts, MCs, and GPA by semester, plus unplanned totals.
+              help - Show this command summary.
+              add m/MODULE_CODE c/CREDITS g/GRADE - Add a module to your records.
+              list - List all recorded modules.
+              edit INDEX [m/MODULE_CODE] [c/CREDITS] [g/GRADE] - Edit a module's details.
+              delete INDEX - Delete a module.
+              gpa - Show GPA, excluding SU-ed modules and non-GPA grades.
+              summary - Show module counts, MCs, and GPA by semester, plus unplanned totals.
               su INDEX - Apply SU to a module and show the remaining SU quota.
+              unsu INDEX - Remove SU from a module and show the remaining SU quota.
+              quota - Show remaining SU quota and the modules you have SU-ed so far.
+              target TARGET_GPA r/REMAINING_MCS - Show the average grade needed to reach a target GPA.
+              plan INDEX y/YEAR s/SEM - Plan a module for a year and semester.
               unplan INDEX - Remove a module's semester assignment.
-              exit     - Exit ChatGPat.
+              filter y/YEAR s/SEM - Show the modules planned for a semester.
+              filter unplanned - Show the modules not planned for any semester.
+              exit - Exit ChatGPat.
 
             INDEX is the module's position in your records, starting from 1.
             """.stripTrailing();
