@@ -663,13 +663,33 @@ This lets the student make informed S/U decisions and plan ahead which modules t
 ## User Stories
 
 |Version| As a ... | I want to ... | So that I can ...|
-|--------|----------|---------------|------------------|
+|-------|----------|---------------|------------------|
 |v1.0|new user|see usage instructions|refer to them when I forget how to use the application|
-|v2.0|user|find a to-do item by name|locate a to-do without having to go through the entire list|
+|v1.0|student|add a module with its units and grade|have it counted correctly towards my GPA|
+|v1.0|student|view all my recorded modules|check everything I have entered and see each module's number|
+|v1.0|student|edit a module's code, units or grade|correct a mistake or try a different grade without re-entering the module|
+|v1.0|student|delete a module|stop a wrongly entered module from being counted in my calculations|
+|v1.0|student|see my current GPA|know where I stand|
+|v1.0|student|mark a module as S/U|see my GPA without that module before I commit to using the S/U|
+|v1.0|student|remove the S/U mark from a module|change my mind and have the module counted again|
+|v1.0|student|check how much of my S/U quota is left|avoid going over the limit|
+|v2.0|student|plan a module for a year and semester|organise which modules I will take in each semester|
+|v2.0|student|remove a module from its semester plan|update my plan when it changes|
+|v2.0|student|filter my modules by year and semester|see what I have planned for one semester|
+|v2.0|student|filter my modules that are not planned yet|find which modules still need a semester|
+|v2.0|student|see a summary of my modules by semester|compare my semesters at a glance|
+|v2.0|student with a GPA goal|set a target GPA|see the average grade I need in my remaining modules to reach it|
+|v2.0|student|have my modules saved when I exit and loaded when I return|avoid re-entering my records every time|
 
 ## Non-Functional Requirements
 
-{Give non-functional requirements}
+1. Should work on any mainstream OS (Windows, Linux, macOS) that has Java 25 or above installed.
+2. Should work offline, without an internet connection.
+3. A user with above-average typing speed for regular English text (not code) should be able to complete most tasks faster by typing commands than by using the mouse.
+4. Should respond to every command without noticeable delay when up to 100 modules are recorded.
+5. GPA calculations should follow the NUS grade-point scale.
+6. A command with invalid input should never crash the program or change the stored data. The user should get an error message that explains what went wrong.
+7. Should be usable by a student who has not used the application before, with the `help` command listing every available command.
 
 ## Glossary
 
