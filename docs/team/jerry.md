@@ -38,14 +38,14 @@ Given below are my contributions to the project.
 
 
 * **Testing**:
-    * Wrote JUnit tests for the `add`, `list`, `targetGPA`, and `filter` features.
+    * Wrote JUnit tests for the `add`, `list`, `targetGPA`, and `filter` features. [#52](https://github.com/AY2627S1-CS2113-T11-2/tp/pull/52) [#40](https://github.com/AY2627S1-CS2113-T11-2/tp/pull/40)
     * **Frontend (Command-level) tests**:
         * Tested command parsing, execution, and expected responses for all four features. [#17](https://github.com/AY2627S1-CS2113-T11-2/tp/pull/17)[#40](https://github.com/AY2627S1-CS2113-T11-2/tp/pull/40)
         * Verified error handling for invalid inputs.
     * **Backend (Model-level) tests**:
-        * Tested module addition, duplicate detection, and module listing.
-        * Verified Target GPA calculations, including edge cases and unattainable targets.
-        * Tested module filtering with multiple matches, no matches, empty records, and unplanned modules.
+        * Tested module addition, duplicate detection, and module listing. [#17](https://github.com/AY2627S1-CS2113-T11-2/tp/pull/17)
+        * Verified Target GPA calculations, including edge cases and unattainable targets. [#40](https://github.com/AY2627S1-CS2113-T11-2/tp/pull/40)
+        * Tested module filtering with multiple matches, no matches, empty records, and unplanned modules. [#47](https://github.com/AY2627S1-CS2113-T11-2/tp/pull/47)
 
 * **Documentation**:
     * **User Guide**:
@@ -62,6 +62,6 @@ Given below are my contributions to the project.
     * Contributions to team discussions: [#17](https://github.com/AY2627S1-CS2113-T11-2/tp/pull/17)
 
 * **Tools**:
-    * Used JUnit to implement automated tests. #47,#40,#17
-    * Used PlantUML to create UML diagrams for the Developer Guide. #51
+    * Used JUnit to implement automated tests. 
+    * Used PlantUML to create UML diagrams for the Developer Guide. [#51](https://github.com/AY2627S1-CS2113-T11-2/tp/pull/51)
     * Used Git and GitHub for version control and collaboration.
