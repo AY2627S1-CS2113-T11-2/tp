@@ -1,0 +1,36 @@
+@startuml
+participant ":CommandManager" as CM
+participant ":SuCommand" as C
+participant ":Student" as S
+participant ":Module" as M
+
+CM -> C : parse("su 2")
+activate C
+C -> C : new SuCommand(2)
+C --> CM : Optional.of(command)
+deactivate C
+
+CM -> C : execute(student)
+activate C
+C -> S : applySu(2)
+activate S
+S -> S : getModule(2)
+alt already SU-ed or insufficient quota
+    S --> C : throws SuException
+    note over C, CM : Exception propagates; no save requested
+else eligible for SU
+    S -> M : setSu(true)
+    activate M
+    M --> S : ok
+    deactivate M
+    S --> C : module
+    deactivate S
+    C -> S : getRemainingSuQuota()
+    activate S
+    S -> S : getUsedSuMcs()
+    S --> C : 24
+    deactivate S
+    C --> CM : Response.forDataChange(message, module)
+end
+deactivate C
+@enduml

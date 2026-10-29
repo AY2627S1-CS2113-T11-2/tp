@@ -772,6 +772,106 @@ The filter feature is covered by `FilterCommandTest` and `FilterUnplannedCommand
 2. `Command#execute(Student)` asks `Student` to change the data, then returns a `Response`. By design, commands do not print: `ChatInterface` prints every `Response`.
 3. `Student` looks the module up with `Student#getModule(int)`, which throws `InvalidIndexException` when the index is out of range. Expected errors such as this are `ChatGpatException`s: `ChatGpat#run` catches them and prints the message as a normal response. Any other unexpected exception is caught by a second `catch` block, which prints a generic error and logs the details. Either way the program keeps running, and the commands above validate their input before changing any data.
 
+### SU feature
+
+#### Implementation
+
+The SU feature is facilitated by `SuCommand` (a subclass of `Command`), `Student#applySu(int)`, and `Student#getRemainingSuQuota()`. It marks a module as SU-ed, excludes it from GPA calculations, and consumes the module's MCs from the available SU quota.
+
+* `SuCommand#parse(String)` — matches `su\s+(\d+)`, converts the captured 1-based index to an integer, and returns a `SuCommand`. Non-matching input returns `Optional.empty()`.
+* `Student#applySu(int)` — retrieves the module through `getModule(index)`, rejects an already SU-ed module or one whose credits exceed the remaining quota with `SuException`, and otherwise calls `Module#setSu(true)` before returning the module.
+* `Student#getRemainingSuQuota()` — subtracts `getUsedSuMcs()` (the sum of credits for SU-ed modules) from the student's total `suQuota`.
+* `SuCommand#execute(Student)` — calls `applySu(index)`, obtains the remaining quota, and returns `Response.forDataChange(message, module)` so the updated record is saved.
+
+Given below is an example usage scenario.
+
+Step 1. The student has 28 MCs of SU quota, none used, and module 2 is `MA1521 | 4 MCs | Grade: B+`.
+
+Step 2. The user executes `su 2`. `SuCommand#parse` creates a command holding index 2.
+
+Step 3. `execute(student)` calls `Student#applySu(2)`. The module is not already SU-ed and 4 MCs fit within the quota, so its SU flag is set to true. The remaining quota becomes 24 MCs, and the command requests an automatic save.
+
+```text
+Applied SU on module 2: MA1521 | 4 MCs | Grade: B+ [S/U]
+Remaining SU quota: 24 MCs.
+```
+
+The following sequence diagram shows how `su 2` is processed.
+
+<img src="images/SuSequence.png" alt="Sequence diagram of the Su command" width="760" />
+
+**Note:** An invalid index causes `InvalidIndexException` in `getModule`. A repeated SU operation or insufficient remaining quota causes `SuException` before `setSu(true)`, leaving the module unchanged. SU-ed modules are excluded from GPA calculations, but their original grades remain stored.
+
+#### Design considerations
+
+**Aspect: How SU quota is maintained**
+
+* **Alternative 1 (current choice):** Calculate used MCs from modules marked SU-ed each time.
+    * Pros: The quota stays consistent when modules are edited, deleted, or have SU removed; no extra counter can become out of sync.
+    * Cons: Each quota check iterates over the module list.
+* **Alternative 2:** Maintain a separate mutable counter of used SU credits.
+    * Pros: Constant-time quota lookup.
+    * Cons: Every operation affecting module credits or SU status must update the counter correctly.
+
+**Aspect: How SU affects module grades**
+
+* **Alternative 1 (current choice):** Keep the original grade and store SU status as a separate boolean.
+    * Pros: Removing SU restores GPA participation without losing the original grade.
+    * Cons: GPA calculations must explicitly exclude SU-ed modules.
+* **Alternative 2:** Replace the grade with a non-GPA grade when SU is applied.
+    * Pros: GPA exclusion could rely on grade type alone.
+    * Cons: The original grade would be lost unless stored separately.
+
+### UnSU feature
+
+#### Implementation
+
+The UnSU feature is facilitated by `UnsuCommand` (a subclass of `Command`), `Student#removeSu(int)`, and `Student#getRemainingSuQuota()`. It removes a module's SU status, restores its eligibility for GPA calculations when its grade affects GPA, and releases its MCs back to the SU quota.
+
+* `UnsuCommand#parse(String)` — matches `unsu\s+(\d+)`, converts the captured 1-based index to an integer, and returns an `UnsuCommand`, or `Optional.empty()` for non-matching input.
+* `Student#removeSu(int)` — retrieves the module with `getModule(index)`, throws `SuException` if it is not currently SU-ed, and otherwise calls `Module#setSu(false)` and returns the module.
+* `Student#getRemainingSuQuota()` — recalculates remaining MCs from the modules that are still SU-ed.
+* `UnsuCommand#execute(Student)` — calls `removeSu(index)`, formats the module and remaining quota, and returns `Response.forDataChange(message, module)` to request a save.
+
+Given below is an example usage scenario.
+
+Step 1. Module 2 is `MA1521 | 4 MCs | Grade: B+ [S/U]`, and the student has 24 MCs of remaining SU quota.
+
+Step 2. The user executes `unsu 2`. `UnsuCommand#parse` creates a command holding index 2.
+
+Step 3. `execute(student)` calls `Student#removeSu(2)`, which clears the SU flag. The remaining quota increases to 28 MCs, and the command returns a response requesting an automatic save.
+
+```text
+Removed SU on module 2: MA1521 | 4 MCs | Grade: B+
+Remaining SU quota: 28 MCs.
+```
+
+The following sequence diagram shows how `unsu 2` is processed.
+
+<img src="images/UnsuSequence.png" alt="Sequence diagram of the Unsu command" width="760" />
+
+**Note:** An invalid index throws `InvalidIndexException`, and trying to remove SU from a module that is not SU-ed throws `SuException`. Neither failure changes the module. Removing SU does not change the stored grade; a grade such as `CS` or `CU` still does not contribute to GPA.
+
+#### Design considerations
+
+**Aspect: Handling modules that are not SU-ed**
+
+* **Alternative 1 (current choice):** Throw `SuException` without modifying the module.
+    * Pros: Alerts the user to an unnecessary operation or a potentially incorrect index.
+    * Cons: The command is not idempotent.
+* **Alternative 2:** Treat repeated UnSU operations as successful.
+    * Pros: Safe to repeat without an error.
+    * Cons: May hide user mistakes.
+
+**Aspect: How SU status is reversed**
+
+* **Alternative 1 (current choice):** Set the existing module's SU flag to false.
+    * Pros: Preserves its grade, credits, code and semester; the quota is automatically recalculated.
+    * Cons: Requires mutable `Module` state.
+* **Alternative 2:** Replace the module with a newly constructed non-SU module.
+    * Pros: Can support an immutable module model.
+    * Cons: Must copy every other module field and preserve its original list position.
+
 ### Local storage
 
 `Storage` owns the UTF-8 file at `data/modules.txt`, relative to the process working directory. Its constructor also accepts a `Path` so tests can use JUnit's `@TempDir`. No file is created by loading a missing path.
