@@ -331,87 +331,6 @@ sequenceDiagram
   * Pros: Fewer helper declarations.
   * Cons: Repeats iteration logic and risks inconsistent exclusions.
 
-### Filter module list feature
-
-#### Implementation
-
-The filter feature is facilitated by `FilterCommand` (a subclass of `Command`) and `Student#filterModule(Semester)`. It displays modules assigned to a selected year and semester without changing the original module list.
-
-* `FilterCommand#parse(String)` — matches `filter\s+y/(\d+)\s+s/(\d+)`, converts the captured year and semester to integers, and returns a `FilterCommand`. Non-matching input returns `Optional.empty()` so the next parser can be tried.
-* `FilterCommand#execute(Student)` — constructs a `Semester` using the parsed values, calls `Student#filterModule(semester)`, and builds a `Response` containing the matching modules. If no indexes are returned, it displays `No modules found in Y2S1.` for the requested semester.
-* `Student#filterModule(Semester)` — iterates through `moduleList`, compares each module's semester with the selected semester using `equals`, and returns an `ArrayList<Integer>` of matching **1-based indexes**. It does not remove or reorder any modules.
-* `Student#getModule(int)` — retrieves each matching module by its original index so `FilterCommand` can display its `toString()` representation.
-
-Given below is an example usage scenario.
-
-Step 1. The user has five modules recorded. Modules 2 and 5 are planned for `Y2S1`.
-
-Step 2. The user executes `filter y/2 s/1`. `FilterCommand#parse` returns a command holding year 2 and semester 1.
-
-Step 3. `execute(student)` constructs `Semester(2, 1)` and calls `Student#filterModule(semester)`, which returns `[2, 5]`. The command retrieves and displays those two modules using their original indexes.
-
-```text
-Modules in Y2S1:
-2. MA1521 | 4 MCs | Grade: B+ | Y2S1
-5. CS2113 | 4 MCs | Grade: A- | Y2S1
-```
-
-The following sequence diagram shows how `filter y/2 s/1` is processed.
-
-```mermaid
-sequenceDiagram
-  participant CM as :CommandManager
-  participant FC as FilterCommand
-  participant F as :FilterCommand
-  participant S as :Student
-
-  CM->>FC: parse("filter y/2 s/1")
-  FC->>F: new FilterCommand(2, 1)
-  FC-->>CM: Optional.of(command)
-  CM->>F: execute(student)
-  F->>F: new Semester(2, 1)
-  F->>S: filterModule(semester)
-  loop for each module in moduleList
-    S->>S: compare module.getSemester().equals(semester)
-  end
-  S-->>F: [2, 5]
-  loop for each matching index
-    F->>S: getModule(index)
-    S-->>F: module
-  end
-  F-->>CM: Response(message)
-```
-
-**Note:** The current `Student#filterModule` calls `Objects.equals(module.getSemester(), semester)` now. Even if an unplanned module is encountered, this function will not `NullPointerException` and it can still compare successfully. However,the current command requires both `y/YEAR` and `s/SEM`; filtering unplanned modules is not implemented. The `Semester` constructor handles year/semester range validation. Filtering is read-only and does not request a storage save.
-
-#### Design considerations
-
-**Aspect: How filtered modules are identified**
-
-* **Alternative 1 (current choice):** Return the original 1-based indexes from `Student#filterModule`.
-  * Pros: Indexes remain consistent with `list`, `delete`, `edit` and `plan`; no separate filtered index mapping is needed.
-  * Cons: `FilterCommand` must call `getModule` for each matching index, and the displayed numbers may have gaps.
-* **Alternative 2:** Return a new list of matching `Module` objects and number them consecutively.
-  * Pros: Simple to render the filtered list.
-  * Cons: Renumbering would be misleading because other commands use indexes from the full list.
-
-**Aspect: How semester matching is performed**
-
-* **Alternative 1 (current choice):** Compare each module's `Semester` with the requested `Semester` using `equals`.
-  * Pros: Reuses the `Semester` value object's equality and keeps the filtering logic short.
-  * Cons: Requires a null check for unplanned modules; the current implementation does not have one.
-* **Alternative 2:** Group modules by semester in a map and look up the selected semester.
-  * Pros: Convenient if repeated filtering and other semester-based queries become common.
-  * Cons: Adds extra bookkeeping and complexity for a simple read-only command.
-
-### Index-based module commands
-
-`delete`, `edit`, `plan` and `unplan` all act on one module, chosen by its position in the list shown by `list` (`INDEX`, starting from 1). They share the same flow:
-
-1. `CommandManager` asks each `Parser<Command>` in turn. The `parse` method of the matching command checks the input with regular expressions and returns a `Command`, or an empty `Optional` if the input is not meant for it.
-2. `Command#execute(Student)` asks `Student` to change the data, then returns a `Response`. By design, commands do not print: `ChatInterface` prints every `Response`.
-3. `Student` looks the module up with `Student#getModule(int)`, which throws `InvalidIndexException` when the index is out of range. Expected errors such as this are `ChatGpatException`s: `ChatGpat#run` catches them and prints the message as a normal response. Any other unexpected exception is caught by a second `catch` block, which prints a generic error and logs the details. Either way the program keeps running, and the commands above validate their input before changing any data.
-
 ### Delete feature
 
 #### Implementation
@@ -758,6 +677,101 @@ sequenceDiagram
     * Pros: No new command.
     * Cons: An unclear special case that makes `Semester` validation harder.
 
+### Filter feature
+
+#### Implementation
+
+The filter feature shows the modules of one semester, or the modules that are not planned yet, without changing the module list. It is facilitated by `FilterCommand`, `FilterUnplannedCommand` (both subclasses of `Command`) and two query methods in `Student`.
+
+<img src="images/FilterClassDiagram.png" alt="Class diagram of the filter feature" width="640" />
+
+* `FilterCommand#parse(String)` — matches `filter\s+y/(\d+)\s+s/(\d+)`, converts the captured year and semester to integers, and returns a `FilterCommand`. Non-matching input returns `Optional.empty()` so the next parser can be tried.
+* `FilterUnplannedCommand#parse(String)` — matches `filter\s+unplanned` and returns a `FilterUnplannedCommand`, or `Optional.empty()` otherwise. The two patterns cannot match the same input, so the order in which the parsers are registered does not matter.
+* `Student#filterModule(Semester)` and `Student#filterUnplannedModules()` — each passes a condition to the private method `Student#filterIndexes(Predicate<Module>)`. It walks through `moduleList` and returns an `ArrayList<Integer>` of the **1-based indexes** of the modules that satisfy the condition. No module is removed or reordered.
+* `FilterCommand#formatResult(...)` — a package-private static method that both commands use. It looks up each returned index with `Student#getModule(int)` and builds the text: a header, then one line per module with its original index. If there are no indexes, it returns the command's "empty" message instead.
+* `FilterCommand#execute(Student)` — constructs a `Semester` from the parsed values, which throws `PlanException` if the year or semester is out of range. It then calls `Student#filterModule(semester)` and `formatResult`, with the header `Modules in Y2S1:` and the empty message `No modules found in Y2S1.` for the requested semester.
+* `FilterUnplannedCommand#execute(Student)` — calls `Student#filterUnplannedModules()` and `formatResult`, with the header `Modules not planned for any semester:`. The empty message is `All modules are planned.`, or `No modules recorded yet.` when the student has no modules at all.
+
+Given below is an example usage scenario.
+
+Step 1. The user has five modules recorded. Modules 2 and 5 are planned for `Y2S1`, module 3 is planned for `Y1S2`, and modules 1 and 4 are not planned.
+
+Step 2. The user executes `filter y/2 s/1`. `FilterCommand#parse` returns a command holding year 2 and semester 1.
+
+Step 3. `execute(student)` constructs `Semester(2, 1)` and calls `Student#filterModule(semester)`, which returns `[2, 5]`. `formatResult` retrieves those two modules and the command displays them with their original indexes.
+
+```text
+Modules in Y2S1:
+2. MA1521 | 4 MCs | Grade: B+ | Y2S1
+5. CS2113 | 4 MCs | Grade: A- | Y2S1
+```
+
+The following sequence diagram shows how `filter y/2 s/1` is processed.
+
+<img src="images/FilterSequence.png" alt="Sequence diagram of the filter y/2 s/1 command" width="760" />
+
+Step 4. The user then executes `filter unplanned`. `FilterUnplannedCommand#parse` returns a command, and `execute(student)` calls `Student#filterUnplannedModules()`, which returns `[1, 4]`.
+
+```text
+Modules not planned for any semester:
+1. CS2040 | 4 MCs | Grade: A
+4. MA1511 | 2 MCs | Grade: B
+```
+
+The following sequence diagram shows how `filter unplanned` is processed.
+
+<img src="images/FilterUnplannedSequence.png" alt="Sequence diagram of the filter unplanned command" width="760" />
+
+**Note:** The diagrams leave out how `FilterUnplannedCommand` chooses between its two empty messages (it checks `Student#getModuleCount()`). Filtering is read-only and does not request a storage save.
+
+#### Design considerations
+
+**Aspect: How filtered modules are identified**
+
+* **Alternative 1 (current choice):** Return the original 1-based indexes from `Student`.
+  * Pros: Indexes remain consistent with `list`, `delete`, `edit` and `plan`; no separate filtered index mapping is needed.
+  * Cons: `formatResult` must call `getModule` for each matching index, and the displayed numbers may have gaps.
+* **Alternative 2:** Return a new list of matching `Module` objects and number them consecutively.
+  * Pros: Simple to render the filtered list.
+  * Cons: Renumbering would be misleading because other commands use indexes from the full list.
+
+**Aspect: How semester matching treats unplanned modules**
+
+* **Alternative 1 (current choice):** Compare with `semester.equals(module.getSemester())`, so the requested `Semester` (which is never `null`) is the one that is asked.
+  * Pros: Reuses the `Semester` value object's equality, and an unplanned module (`null` semester) simply does not match, without a separate null check.
+  * Cons: The order of the two operands matters. Writing `module.getSemester().equals(semester)` throws a `NullPointerException` for unplanned modules, so a test covers this case.
+* **Alternative 2:** Group modules by semester in a map and look up the selected semester.
+  * Pros: Convenient if repeated filtering and other semester-based queries become common.
+  * Cons: Adds extra bookkeeping and complexity for a simple read-only command.
+
+**Aspect: How `filter unplanned` is added**
+
+* **Alternative 1 (current choice):** A separate `FilterUnplannedCommand` with its own pattern.
+  * Pros: Each command has one pattern and one purpose, and `FilterCommand`'s parsing and tests stay unchanged.
+  * Cons: One more class, and the two commands must share their output code.
+* **Alternative 2:** Extend `FilterCommand` so that `y/` and `s/` are optional, or accept the word `unplanned` instead.
+  * Pros: Only one command class.
+  * Cons: `FilterCommand` needs a mode flag or nullable fields, and both `parse` and `execute` branch on it, which makes them harder to read and test.
+
+**Aspect: How the two filters share code**
+
+* **Alternative 1 (current choice):** One private `Student#filterIndexes(Predicate<Module>)` for the loop and one `FilterCommand#formatResult` for the output.
+  * Pros: The loop and the output format exist once, so a new filter only needs a new condition and a header.
+  * Cons: `FilterUnplannedCommand` depends on a package-private method of `FilterCommand`.
+* **Alternative 2:** Copy the loop and the formatting into each command.
+  * Pros: The commands are independent of each other.
+  * Cons: Duplicated code, so a change in the output format must be made in two places.
+
+The filter feature is covered by `FilterCommandTest` and `FilterUnplannedCommandTest`. They check parsing, the output for matching and empty results, that original indexes are kept, that invalid years and semesters throw `PlanException`, and that unplanned modules are never matched by a semester filter.
+
+### Index-based module commands
+
+`delete`, `edit`, `plan` and `unplan` all act on one module, chosen by its position in the list shown by `list` (`INDEX`, starting from 1). They share the same flow:
+
+1. `CommandManager` asks each `Parser<Command>` in turn. The `parse` method of the matching command checks the input with regular expressions and returns a `Command`, or an empty `Optional` if the input is not meant for it.
+2. `Command#execute(Student)` asks `Student` to change the data, then returns a `Response`. By design, commands do not print: `ChatInterface` prints every `Response`.
+3. `Student` looks the module up with `Student#getModule(int)`, which throws `InvalidIndexException` when the index is out of range. Expected errors such as this are `ChatGpatException`s: `ChatGpat#run` catches them and prints the message as a normal response. Any other unexpected exception is caught by a second `catch` block, which prints a generic error and logs the details. Either way the program keeps running, and the commands above validate their input before changing any data.
+
 ### Local storage
 
 `Storage` owns the UTF-8 file at `data/modules.txt`, relative to the process working directory. Its constructor also accepts a `Path` so tests can use JUnit's `@TempDir`. No file is created by loading a missing path.
@@ -814,4 +828,21 @@ Escapes are `\|`, `\\`, `\n`, `\r`, `\t`, and `\s` (literal space). The reader t
 
 ## Instructions for manual testing
 
-{Give instructions on how to do a manual product testing e.g., how to load sample data to be used for testing}
+1. Filtering by semester
+  1. Prerequisites: plan module 1 with `plan 1 y/2 s/1` and module 2 with `plan 2 y/3 s/1`.
+  1. Test case: `filter y/2 s/1`<br>
+     Expected: `Modules in Y2S1:` followed by module 1 with its original number. Module 2 is not shown.
+  1. Test case: `filter y/3 s/2`<br>
+     Expected: `No modules found in Y3S2.`
+  1. Test case: `filter y/9 s/1`<br>
+     Expected: An error saying the year is invalid.
+
+1. Filtering unplanned modules
+  1. Prerequisites: module 1 and module 2 are planned, module 3 is not.
+  1. Test case: `filter unplanned`<br>
+     Expected: `Modules not planned for any semester:` followed by module 3 with its original number.
+  1. Test case: plan module 3, then `filter unplanned`<br>
+     Expected: `All modules are planned.`
+  1. Test case: delete every module, then `filter unplanned`<br>
+     Expected: `No modules recorded yet.`
+

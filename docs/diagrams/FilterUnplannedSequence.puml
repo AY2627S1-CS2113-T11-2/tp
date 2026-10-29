@@ -1,0 +1,36 @@
+@startuml
+!include style.puml
+
+participant ":CommandManager" as CM
+participant "<<class>>\nFilterUnplannedCommand" as UC
+participant ":FilterUnplannedCommand" as U
+participant ":Student" as S
+participant "<<class>>\nFilterCommand" as FC
+
+[-> CM ++ : processQuery("filter unplanned")
+CM -> UC ++ : parse("filter unplanned")
+create U
+UC -> U : FilterUnplannedCommand()
+activate U
+U --> UC
+deactivate U
+UC --> CM -- : Optional.of(command)
+
+CM -> U ++ : execute(student)
+U -> S ++ : filterUnplannedModules()
+S -> S ++ : filterIndexes(condition)
+loop for each module in moduleList
+    S -> S : condition.test(module)
+end
+S --> S -- : indexes
+S --> U -- : [1, 4]
+U -> FC ++ : formatResult(header, emptyMessage,\nindexes, student)
+loop for each index
+    FC -> S ++ : getModule(index)
+    S --> FC -- : module
+end
+FC --> U -- : message
+U --> CM -- : Response
+destroy U
+[<-- CM -- : Response
+@enduml
