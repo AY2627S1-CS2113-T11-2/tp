@@ -1,0 +1,26 @@
+@startuml
+!include style.puml
+participant ":List caller" as C
+participant ":Student" as S
+participant ":Module" as M
+participant ":Console" as O
+[-> C : list
+activate C
+C -> S : printModuleList()
+activate S
+alt [moduleList is empty]
+  S -> O : print("No modules recorded yet.")
+else [moduleList is not empty]
+  S -> O : print heading
+  loop [for each module; index starts at 1]
+    S -> M : toString()
+    activate M
+    M --> S : formatted module details
+    deactivate M
+    S -> O : print index and details
+  end
+end
+S --> C : completed
+deactivate S
+deactivate C
+@enduml

@@ -231,6 +231,39 @@ Shows the remaining SU quota. Lists out all the current SU-ed modules.
 
 **Format:** `quota`
 
+### Calculating a target GPA: `target`
+
+Estimates the average grade point you need across your remaining Modular Credits (MCs) to achieve your desired overall GPA. The calculation uses your recorded grades and excludes S/U-ed modules and non-GPA grades such as `CS` and `CU`.
+
+**Format:** `target GPA r/REMAINING_MCS`
+
+- `GPA` is your desired overall GPA, greater than 0 and at most 5.0.
+- `REMAINING_MCS` is the positive number of MCs you expect to complete.
+- At least one recorded module must contribute to your current GPA.
+- The result is an estimate based on the assumption that all remaining MCs contribute to GPA. This command does not change your records.
+
+**Example:**
+
+Suppose you have `CS2113` (4 MCs, A-) and `MA1521` (4 MCs, B+). Your current GPA is 4.25 over 8 MCs.
+
+```text
+target 4.5 r/8
+```
+
+**Expected output:**
+
+```text
+Current GPA: 4.25 over 8 MCs.
+To reach 4.5 after 8 more MCs, you need an average grade point of 4.75 (About [estimated letter grade])
+```
+
+The letter-grade estimate is determined by the application's `Grade.estimateLetterGrade` method; the bracketed text above is explanatory, not a literal output value.
+
+**Other possible results:**
+
+- If the target is already guaranteed even with zero grade points from the remaining MCs, the program displays `You already secured your target GPA!`.
+- If the target cannot be reached even with an average of 5.0 on the remaining MCs, the program displays `Your target GPA is unreachable!` and the best achievable GPA.
+
 ### Filtering modules: `filter`
 
 Shows only some of your modules: either the modules planned for a selected year and semester, or the modules that are not planned for any semester yet. The module numbers are the same as in the full `list`, so you can use them safely with commands such as `edit`, `delete`, `plan` and `unplan`.

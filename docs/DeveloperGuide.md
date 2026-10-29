@@ -166,27 +166,10 @@ Step 2. The add command constructs a `Module` from the parsed details and invoke
 
 Step 3. `Student` checks the module code for duplicates and adds the module to the list if none exists. The command then returns a `Response` for display by `ChatInterface`.
 
-The following sequence diagram focuses on the domain-side add operation.
+TThe following sequence diagram illustrates how the
+Add Module feature is executed.
 
-```mermaid
-sequenceDiagram
-    participant CM as :CommandManager
-    participant AC as :AddCommand
-    participant S as :Student
-    participant M as :Module
-
-    CM->>AC: execute(student)
-    AC->>M: new Module(...)
-    AC->>S: addModule(module)
-    S->>S: isModuleExists(moduleList, moduleCode)
-    alt module code already exists
-        S-->>AC: throws DuplicateModuleException
-    else module code is unique
-        S->>S: moduleList.add(module)
-        S-->>AC: completed
-        AC-->>CM: Response
-    end
-```
+<img src="images/AddModuleSequence.png" alt="Sequence diagram of the add modules command" width="760" />
 
 **Note:** Duplicate checking is case-insensitive. The uploaded `Module` constructor currently initializes `isSuApplied` to `false` even though it accepts an `isSuApplied` parameter. The command's exact syntax beyond the architecture example should be checked against `AddCommand.java`.
 
@@ -216,25 +199,7 @@ Here are your recorded modules:
 
 The following sequence diagram illustrates the existing `Student#printModuleList()` method. The command-to-UI integration cannot be verified without the list command source.
 
-```mermaid
-sequenceDiagram
-    participant Caller as :List caller
-    participant S as :Student
-    participant M as :Module
-    participant Console as :Console
-
-    Caller->>S: printModuleList()
-    alt moduleList is empty
-        S->>Console: print "No modules recorded yet."
-    else moduleList is not empty
-        S->>Console: print heading
-        loop for each module (index starts at 1)
-            S->>M: toString()
-            M-->>S: formatted module details
-            S->>Console: print index and details
-        end
-    end
-```
+<img src="images/ListModulesSequence.png" alt="Sequence diagram of the list modules command" width="760" />
 
 **Note:** Unlike the general architecture's response-based output design, the uploaded `printModuleList()` prints directly to `System.out`. If the actual list command uses `Response` instead, its implementation should be documented after inspecting that command.
 
@@ -248,88 +213,6 @@ sequenceDiagram
 * **Alternative 2:** A list command builds a `Response` and delegates printing to `ChatInterface`.
   * Pros: Consistent with the layered architecture and easier to test without capturing console output.
   * Cons: Requires the command or response model to carry the formatted list.
-
-### Target GPA feature
-
-#### Implementation
-
-The target GPA feature is facilitated by `TargetGpaCommand`, `Student#targetGPA(double, int)`, `Student#calculateGpaData()` and `Grade#estimateLetterGrade(double)`. It calculates the average grade point needed over the remaining modular credits to reach a desired cumulative GPA.
-
-* `TargetGpaCommand#parse(String)` — matches `target\\s+(\\S+)\\s+r/(\\S+)`, converts the target to a `double` and the remaining MCs to an `int`, and creates a `TargetGpaCommand`. If the pattern does not match, it returns `Optional.empty()`. Numeric conversion errors can propagate as `NumberFormatException`.
-* `TargetGpaCommand#execute(Student)` — calls `Student#targetGPA(target, remainingMcs)` and wraps the returned message in a `Response`.
-* `Student#calculateGpaData()` — iterates through the recorded modules and returns a private `GpaData` record containing the total weighted grade points and GPA-contributing credits. S/U modules and grades such as `CS` and `CU` are excluded.
-* `Student#targetGPA(double, int)` — checks that the target is greater than 0 and at most 5.0, and that the remaining MCs are positive. It throws `TargetException` for invalid values and `GpaException` when no recorded module contributes to GPA. It then calculates the required average and returns the appropriate message.
-* `Grade#estimateLetterGrade(double)` — provides the approximate letter grade shown alongside a reachable required average.
-
-Let `P` be the current weighted grade-point total, `C` the current GPA-contributing MCs, `F` the remaining MCs, and `T` the target GPA. The required future average `R` is:
-
-\[
-R = \frac{T(C+F)-P}{F}
-\]
-
-Given below is an example usage scenario.
-
-Step 1. The student has recorded `CS2113` (4 MCs, A-) and `MA1521` (4 MCs, B+). The current GPA is 4.25 over 8 MCs, so `P = 34`.
-
-Step 2. The user executes `target 4.50 r/8`. `TargetGpaCommand#parse` constructs a command with target 4.50 and 8 remaining MCs.
-
-Step 3. `execute(student)` calls `Student#targetGPA(4.50, 8)`. The required average is `(4.50 × 16 − 34) / 8 = 4.75`. The returned `Response` includes the current GPA, required grade point and an approximate letter grade.
-
-The following sequence diagram shows how `target 4.50 r/8` is processed.
-
-```mermaid
-sequenceDiagram
-  participant CM as :CommandManager
-  participant TC as TargetGpaCommand
-  participant S as :Student
-  participant M as :Module
-
-  CM->>TC: parse("target 4.50 r/8")
-  create participant T as :TargetGpaCommand
-  TC->>T: new TargetGpaCommand(4.50, 8)
-  TC-->>CM: Optional.of(command)
-
-  CM->>T: execute(student)
-  T->>S: targetGPA(4.50, 8)
-  S->>S: validate target and remaining MCs
-  S->>S: calculateGpaData()
-  loop each recorded module
-    S->>M: isSu(), getGrade(), getCredit()
-    M-->>S: GPA contribution data
-  end
-  S->>S: calculate required average
-  alt required average <= 0
-    S-->>T: target already secured message
-  else required average > 5
-    S-->>T: unreachable target and best achievable GPA
-  else required average within (0, 5]
-    S->>S: Grade.estimateLetterGrade(required average)
-    S-->>T: required average and estimated grade
-  end
-  T-->>CM: Response(message)
-```
-
-**Note:** `Student#targetGPA` handles three outcomes: if `R <= 0`, the target is already secured; if `R > 5`, it reports the best achievable GPA assuming 5.0 in every remaining MC; otherwise it reports `R` and an approximate letter grade. Invalid target values or remaining MCs are rejected before calculation. The current implementation uses `target <= 0` as its lower-bound check, although its exception text describes the interval as inclusive of 0.0.
-
-#### Design considerations
-
-**Aspect: Where the GPA calculation is performed**
-
-* **Alternative 1 (current choice):** `Student#targetGPA` performs the calculation, while `TargetGpaCommand` handles parsing and creates the `Response`.
-  * Pros: Keeps GPA business rules in the domain layer and makes the command straightforward to test.
-  * Cons: Adds calculation and message-formatting responsibilities to `Student`.
-* **Alternative 2:** Calculate the required average inside `TargetGpaCommand`.
-  * Pros: Keeps the calculation close to its command.
-  * Cons: Duplicates GPA-related logic and mixes command processing with domain rules.
-
-**Aspect: How GPA totals are reused**
-
-* **Alternative 1 (current choice):** Use a private `GpaData` record returned by `calculateGpaData()`.
-  * Pros: Both current and target GPA calculations use the same credit-weighted totals and exclusions.
-  * Cons: Requires an additional helper method and record.
-* **Alternative 2:** Recompute totals separately in `calculateGpa()` and `targetGPA()`.
-  * Pros: Fewer helper declarations.
-  * Cons: Repeats iteration logic and risks inconsistent exclusions.
 
 ### Delete feature
 
@@ -676,6 +559,58 @@ sequenceDiagram
 * **Alternative 2:** A special value such as `plan INDEX y/0 s/0`.
     * Pros: No new command.
     * Cons: An unclear special case that makes `Semester` validation harder.
+    
+### Target GPA feature
+
+#### Implementation
+
+The target GPA feature is facilitated by `TargetGpaCommand`, `Student#targetGPA(double, int)`, `Student#calculateGpaData()` and `Grade#estimateLetterGrade(double)`. It calculates the average grade point needed over the remaining modular credits to reach a desired cumulative GPA.
+
+* `TargetGpaCommand#parse(String)` — matches `target\\s+(\\S+)\\s+r/(\\S+)`, converts the target to a `double` and the remaining MCs to an `int`, and creates a `TargetGpaCommand`. If the pattern does not match, it returns `Optional.empty()`. Numeric conversion errors can propagate as `NumberFormatException`.
+* `TargetGpaCommand#execute(Student)` — calls `Student#targetGPA(target, remainingMcs)` and wraps the returned message in a `Response`.
+* `Student#calculateGpaData()` — iterates through the recorded modules and returns a private `GpaData` record containing the total weighted grade points and GPA-contributing credits. S/U modules and grades such as `CS` and `CU` are excluded.
+* `Student#targetGPA(double, int)` — checks that the target is greater than 0 and at most 5.0, and that the remaining MCs are positive. It throws `TargetException` for invalid values and `GpaException` when no recorded module contributes to GPA. It then calculates the required average and returns the appropriate message.
+* `Grade#estimateLetterGrade(double)` — provides the approximate letter grade shown alongside a reachable required average.
+
+Let `P` be the current weighted grade-point total, `C` the current GPA-contributing MCs, `F` the remaining MCs, and `T` the target GPA. The required future average `R` is:
+
+\[
+R = \frac{T(C+F)-P}{F}
+\]
+
+Given below is an example usage scenario.
+
+Step 1. The student has recorded `CS2113` (4 MCs, A-) and `MA1521` (4 MCs, B+). The current GPA is 4.25 over 8 MCs, so `P = 34`.
+
+Step 2. The user executes `target 4.50 r/8`. `TargetGpaCommand#parse` constructs a command with target 4.50 and 8 remaining MCs.
+
+Step 3. `execute(student)` calls `Student#targetGPA(4.50, 8)`. The required average is `(4.50 × 16 − 34) / 8 = 4.75`. The returned `Response` includes the current GPA, required grade point and an approximate letter grade.
+
+The following sequence diagram shows how `target 4.50 r/8` is processed.
+
+<img src="images/TargetGpaSequence.png" alt="Sequence diagram of the targetGPA command" width="760" />
+
+**Note:** `Student#targetGPA` handles three outcomes: if `R <= 0`, the target is already secured; if `R > 5`, it reports the best achievable GPA assuming 5.0 in every remaining MC; otherwise it reports `R` and an approximate letter grade. Invalid target values or remaining MCs are rejected before calculation. The current implementation uses `target <= 0` as its lower-bound check, although its exception text describes the interval as inclusive of 0.0.
+
+#### Design considerations
+
+**Aspect: Where the GPA calculation is performed**
+
+* **Alternative 1 (current choice):** `Student#targetGPA` performs the calculation, while `TargetGpaCommand` handles parsing and creates the `Response`.
+  * Pros: Keeps GPA business rules in the domain layer and makes the command straightforward to test.
+  * Cons: Adds calculation and message-formatting responsibilities to `Student`.
+* **Alternative 2:** Calculate the required average inside `TargetGpaCommand`.
+  * Pros: Keeps the calculation close to its command.
+  * Cons: Duplicates GPA-related logic and mixes command processing with domain rules.
+
+**Aspect: How GPA totals are reused**
+
+* **Alternative 1 (current choice):** Use a private `GpaData` record returned by `calculateGpaData()`.
+  * Pros: Both current and target GPA calculations use the same credit-weighted totals and exclusions.
+  * Cons: Requires an additional helper method and record.
+* **Alternative 2:** Recompute totals separately in `calculateGpa()` and `targetGPA()`.
+  * Pros: Fewer helper declarations.
+  * Cons: Repeats iteration logic and risks inconsistent exclusions.
 
 ### Filter feature
 
