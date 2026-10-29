@@ -1,0 +1,36 @@
+@startuml
+!include style.puml
+left to right direction
+
+class ChatGpat
+
+package "UI" as UiPkg #EAF6FB {
+    class ChatInterface
+}
+
+package "Logic" as LogicPkg #EEF6E4 {
+    class CommandManager
+    abstract class Command
+    class Response
+}
+
+package "Model" as ModelPkg #FBE9E7 {
+    class Student
+    class Module
+}
+
+package "Storage" as StoragePkg #F3EDF9 {
+    class Storage
+}
+
+ChatGpat ..> ChatInterface
+ChatGpat ..> CommandManager
+ChatGpat ..> Storage
+ChatGpat --> "1" Student : student
+CommandManager ..> Command : executes
+Command ..> Response : returns
+Command ..> Student
+ChatInterface ..> Response
+Student --> "0..*" Module : moduleList
+Storage ..> Student
+@enduml

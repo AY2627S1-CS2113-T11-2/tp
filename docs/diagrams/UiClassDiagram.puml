@@ -1,0 +1,21 @@
+@startuml
+!include style.puml
+left to right direction
+
+class ChatGpat
+
+class ChatInterface {
+    + printWelcome()
+    + printResponse(response : Response)
+    + printError(e : Exception)
+    + getUserQuery() : String
+}
+
+class Response {
+    + message() : String
+    + hasModule() : boolean
+}
+
+ChatGpat --> "1" ChatInterface : ui >
+ChatInterface ..> Response
+@enduml

@@ -1,0 +1,35 @@
+@startuml
+!include style.puml
+left to right direction
+
+class Student {
+    + addModule(module : Module)
+    + deleteModule(index : int) : Module
+    + getModule(index : int) : Module
+    + getModuleCount() : int
+}
+
+class Module {
+    - moduleCode : String
+    - credit : int
+    - isSuApplied : boolean
+    - grade : Grade
+    - semester : Semester
+}
+
+class "Semester" as Semester <<record>> {
+    + year() : int
+    + term() : int
+}
+
+class Grade <<enumeration>> {
+    A_PLUS
+    A
+    ...
+    F
+}
+
+Student --> "0..*" Module : moduleList >
+Module --> "1" Grade : grade >
+Module --> "0..1" Semester : semester >
+@enduml

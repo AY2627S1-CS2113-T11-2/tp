@@ -1,0 +1,30 @@
+@startuml
+!include style.puml
+
+class RuntimeException
+
+abstract class ChatGpatException
+
+class DuplicateModuleException
+class EditException
+class GpaException
+class InvalidIndexException
+class PlanException
+class SuException
+class TargetException
+class UnknownCommandException
+
+note bottom of ChatGpatException
+  Not all subclasses are shown.
+end note
+
+RuntimeException <|-- ChatGpatException
+ChatGpatException <|-- DuplicateModuleException
+ChatGpatException <|-- EditException
+ChatGpatException <|-- GpaException
+ChatGpatException <|-- InvalidIndexException
+ChatGpatException <|-- PlanException
+ChatGpatException <|-- SuException
+ChatGpatException <|-- TargetException
+ChatGpatException <|-- UnknownCommandException
+@enduml

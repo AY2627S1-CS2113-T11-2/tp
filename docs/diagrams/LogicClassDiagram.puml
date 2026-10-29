@@ -1,0 +1,42 @@
+@startuml
+!include style.puml
+
+class ChatGpat
+
+class CommandManager {
+    + processQuery(query : String) : Response
+}
+
+class "Parser" as Parser <<interface>> {
+    + parse(input : String) : Optional<Command>
+}
+
+abstract class Command {
+    + {abstract} execute(student : Student) : Response
+}
+
+class XYZCommand {
+    + {static} parse(input : String) : Optional<Command>
+    + execute(student : Student) : Response
+}
+
+class Response {
+    + message() : String
+    + hasModule() : boolean
+}
+
+class Student
+
+note right of Parser
+  Each XYZCommand#parse is
+  registered as one Parser.
+end note
+
+ChatGpat --> "1" CommandManager : commandManager >
+CommandManager --> "0..*" Parser : parsers >
+Parser ..> Command : creates
+CommandManager ..> Command : executes
+XYZCommand --|> Command
+Command ..> Response : returns
+Command ..> Student
+@enduml
