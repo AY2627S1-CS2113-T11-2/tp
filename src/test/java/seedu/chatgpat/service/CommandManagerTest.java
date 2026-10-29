@@ -65,11 +65,22 @@ public class CommandManagerTest {
 
         Response response = manager.processQuery("help");
 
-        assertTrue(response.message().contains("help     -"));
-        assertTrue(response.message().contains("gpa      -"));
-        assertTrue(response.message().contains("summary  -"));
+        assertTrue(response.message().contains("help -"));
+        assertTrue(response.message().contains("add m/MODULE_CODE c/CREDITS g/GRADE -"));
+        assertTrue(response.message().contains("list -"));
+        assertTrue(response.message().contains("edit INDEX [m/MODULE_CODE] [c/CREDITS] [g/GRADE] -"));
+        assertTrue(response.message().contains("delete INDEX -"));
+        assertTrue(response.message().contains("gpa -"));
+        assertTrue(response.message().contains("summary -"));
         assertTrue(response.message().contains("su INDEX -"));
-        assertTrue(response.message().contains("exit     -"));
+        assertTrue(response.message().contains("unsu INDEX -"));
+        assertTrue(response.message().contains("quota -"));
+        assertTrue(response.message().contains("target TARGET_GPA r/REMAINING_MCS -"));
+        assertTrue(response.message().contains("plan INDEX y/YEAR s/SEM -"));
+        assertTrue(response.message().contains("unplan INDEX -"));
+        assertTrue(response.message().contains("filter y/YEAR s/SEM -"));
+        assertTrue(response.message().contains("filter unplanned -"));
+        assertTrue(response.message().contains("exit -"));
         assertFalse(response.isExit());
         assertFalse(response.hasModule());
     }
