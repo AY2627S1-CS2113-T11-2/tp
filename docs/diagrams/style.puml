@@ -1,0 +1,35 @@
+skinparam shadowing false
+skinparam dpi 110
+skinparam backgroundColor white
+skinparam defaultFontName SansSerif
+skinparam ArrowColor #333333
+skinparam NoteBackgroundColor #F3F9E8
+skinparam NoteBorderColor #7A9A3A
+
+' Sequence diagrams
+skinparam ParticipantBackgroundColor #E8DFF5
+skinparam ParticipantBorderColor #7030A0
+skinparam SequenceLifeLineBorderColor #7030A0
+skinparam SequenceGroupBorderColor #2E75B6
+skinparam SequenceGroupBackgroundColor transparent
+skinparam SequenceBoxBorderColor #999999
+skinparam SequenceReferenceBackgroundColor white
+skinparam SequenceDividerBorderColor #2E75B6
+
+' Class and object diagrams
+skinparam classAttributeIconSize 0
+skinparam ClassBackgroundColor #DDF3FA
+skinparam ClassBorderColor #2E75B6
+skinparam ObjectBackgroundColor #E8DFF5
+skinparam ObjectBorderColor #7030A0
+skinparam PackageBorderColor #999999
+hide circle
+
+' Activity diagrams
+skinparam ActivityBackgroundColor #DDF3FA
+skinparam ActivityBorderColor #2E75B6
+skinparam ActivityDiamondBackgroundColor #E8DFF5
+skinparam ActivityDiamondBorderColor #7030A0
+skinparam ActivityStartColor #2E9AB6
+skinparam ActivityEndColor #2E9AB6
+hide footbox

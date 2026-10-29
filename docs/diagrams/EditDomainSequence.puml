@@ -1,0 +1,22 @@
+@startuml
+!include style.puml
+
+participant ":EditCommand" as E
+box "Domain" #FBE9E7
+    participant ":Student" as S
+    participant ":Module" as M
+end box
+
+[-> E ++ : execute(student)
+E -> S ++ : editModule(2, null, 5, A)
+S -> S ++ : getModule(2)
+S --> S -- : module
+S -> S ++ : validate the given fields
+S --> S --
+S -> M ++ : setCredit(5)
+M --> S --
+S -> M ++ : setGrade(A)
+M --> S --
+S --> E -- : edited module
+[<-- E -- : Response
+@enduml

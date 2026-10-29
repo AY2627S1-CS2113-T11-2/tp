@@ -1,0 +1,11 @@
+@startuml
+!include style.puml
+
+object "__:Student__" as s
+object "__m1:Module__" as m1 {
+    moduleCode = "CS2113"
+    semester = null
+}
+
+s --> m1 : moduleList >
+@enduml

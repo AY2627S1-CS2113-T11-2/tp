@@ -1,0 +1,48 @@
+@startuml
+!include style.puml
+
+abstract class Command {
+    + {abstract} execute(student : Student) : Response
+}
+
+class PlanCommand {
+    - index : int
+    - semester : Semester
+    + {static} parse(input : String) : Optional<Command>
+    + execute(student : Student) : Response
+}
+
+class Student {
+    + getModule(index : int) : Module
+    + planModule(index : int, semester : Semester) : Module
+}
+
+class Module {
+    - moduleCode : String
+    - credit : int
+    - isSuApplied : boolean
+    - semester : Semester
+    + getSemester() : Semester
+    + setSemester(semester : Semester)
+}
+
+class "Semester" as Semester <<record>> {
+    + year() : int
+    + term() : int
+    + toString() : String
+}
+
+class Grade <<enumeration>> {
+    A_PLUS
+    A
+    ...
+    F
+}
+
+Command <|-left- PlanCommand
+PlanCommand ..> Student
+PlanCommand ..> Semester
+Student -right-> "0..*" Module : moduleList >
+Module -right-> "0..1" Semester : semester >
+Module -down-> "1" Grade : grade >
+@enduml

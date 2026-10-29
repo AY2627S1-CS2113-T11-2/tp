@@ -1,0 +1,34 @@
+@startuml
+!include style.puml
+
+participant ":CommandManager" as CM
+participant "<<class>>\nEditCommand" as EC
+participant ":EditCommand" as E
+participant ":Student" as S
+participant ":Module" as M
+
+[-> CM ++ : processQuery("edit 2 c/5 g/A")
+CM -> EC ++ : parse("edit 2 c/5 g/A")
+create E
+EC -> E : EditCommand(2, null, 5, A)
+activate E
+E --> EC
+deactivate E
+EC --> CM -- : Optional.of(command)
+
+CM -> E ++ : execute(student)
+E -> S ++ : editModule(2, null, 5, A)
+alt all checks pass
+    S -> M ++ : setCredit(5)
+    M --> S --
+    S -> M ++ : setGrade(A)
+    M --> S --
+    S --> E : edited module
+else a check fails
+    S --> E : throws InvalidIndexException\nor EditException
+end
+deactivate S
+E --> CM -- : Response, or the exception\npropagates to ChatGpat
+destroy E
+[<-- CM -- : Response
+@enduml
