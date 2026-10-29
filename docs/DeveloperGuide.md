@@ -605,7 +605,6 @@ The following sequence diagram shows how `unplan 1` is processed.
   * Pros: No new command.
   * Cons: An unclear special case that makes `Semester` validation harder.
 
-
 ### Local storage
 
 `Storage` owns the UTF-8 file at `data/modules.txt`, relative to the process working directory. Its constructor also accepts a `Path` so tests can use JUnit's `@TempDir`. No file is created by loading a missing path.
@@ -637,13 +636,29 @@ Escapes are `\|`, `\\`, `\n`, `\r`, `\t`, and `\s` (literal space). The reader t
 **Verification:** `StorageTest` covers a real save/load round trip, escaped text, legacy defaults, malformed lines and duplicates, missing/unreadable files, and failed saves. `ChatGpatTest` verifies that each of the seven mutating commands saves before its response, sessions restore saved state, viewing/rejected commands do not rewrite the file, and save errors reach the UI while commands continue working.
 
 ## Product scope
+
 ### Target user profile
 
-{Describe the target user profile}
+ChatGpat is for NUS Computing students who are strategic about their GPA, especially those working towards a GPA-dependent goal such as a student exchange (SEP) place or a scholarship. The target user:
+
+* has to keep track of many modules across several semesters
+* has a limited S/U quota and needs to decide which modules to use it on
+* wants to know what GPA to aim for in the remaining modules to reach a target
+* prefers typing commands to clicking through a spreadsheet or a web app
+* is comfortable using a command-line application
 
 ### Value proposition
 
-{Describe the value proposition: what problem does it solve?}
+Students working towards a GPA goal usually track their grades and S/U decisions in spreadsheets or in their heads. Updating a spreadsheet by hand is slow and easy to get wrong, and an S/U decision cannot be undone once it is made.
+
+ChatGpat keeps the student's modules, grades and semester plan in one place and answers with one typed command:
+
+* **What is my GPA now?** It calculates the GPA from the recorded grades, leaving out modules that are marked S/U.
+* **What if I S/U this module, or get a different grade?** `su`, `unsu` and `edit` change one module, so the student can compare the GPA before and after, and `quota` shows how much S/U quota is left.
+* **What do I need to reach my target?** The target GPA command shows the average grade needed in the remaining modules.
+* **What is my plan?** `plan` places a module in a year and semester, `unplan` removes it, and `filter` lists the modules of one semester or those not planned yet.
+
+This lets the student make informed S/U decisions and plan ahead which modules to put the most effort into.
 
 ## User Stories
 
