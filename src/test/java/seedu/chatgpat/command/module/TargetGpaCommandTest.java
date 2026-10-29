@@ -145,7 +145,7 @@ public class TargetGpaCommandTest {
         Response response = command.execute(student);
         System.out.println(response.message());
         assertTrue(response.message().contains(String.format("Current GPA: 5.00 over 4 MCs.%n") +
-                "To reach 4.5 after 4 more MCs, you need an average grade point of 4.0 (About B+)"));
+                "To reach 4.5 after 4 more MCs, you need an average grade point of 4.00 (About B+)"));
     }
 
     /**
@@ -162,9 +162,8 @@ public class TargetGpaCommandTest {
                 "target 4.5 r/4").orElseThrow();
 
         Response response = command.execute(student);
-
         assertTrue(response.message().contains(String.format("Current GPA: 5.00 over 4 MCs.%n") +
-                "To reach 4.5 after 4 more MCs, you need an average grade point of 4.0 (About B+)"));
+                "To reach 4.5 after 4 more MCs, you need an average grade point of 4.00 (About B+)"));
     }
 
     /**

@@ -374,7 +374,7 @@ public class Student {
                 "To reach " + target +
                 " after " + remainingMCs +
                 " more MCs, you need an average grade point of " +
-                averageGradePointsRequired + " (About " + estimatedLetterGrade + ")";
+                String.format("%.2f", averageGradePointsRequired) + " (About " + estimatedLetterGrade + ")";
     }
 
     /**
