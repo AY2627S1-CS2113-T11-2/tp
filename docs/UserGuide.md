@@ -112,33 +112,6 @@ Here are your recorded modules:
 ```
 Modules planned with `plan` also show their semester at the end of the line, for example `1. CS2113 | 4 MCs | Grade: A- | Y2S1`.
 
-### Filtering modules by semester: `filter`
-
-Shows only the modules planned for a selected year and semester. The module numbers are the same as in the full `list`, so you can use them safely with commands such as `edit`, `delete`, and `unplan`.
-
-**Format:** `filter y/YEAR s/SEM`
-
-- `YEAR` is the year of study, from 1 to 4.
-- `SEM` is the semester, either 1 or 2.
-- Both fields are required, in the order shown.
-- Filtering only changes what is displayed; it does not modify or save your records.
-
-**Example:** `filter y/2 s/1`
-
-**Expected output** (if modules 2 and 5 belong to Year 2 Semester 1):
-
-```text
-Modules in Y2S1:
-2. MA1521 | 4 MCs | Grade: B+ | Y2S1
-5. CS2113 | 4 MCs | Grade: A- | Y2S1
-```
-
-If there are no matching modules, the program displays:
-
-```text
-No modules found in Y2S1.
-```
-
 ### Deleting a module: `delete`
 
 Remove a module from your records.
@@ -206,26 +179,6 @@ Planned module 1 for Y2S1:
 - A semester outside 1 to 2 shows `Semester must be between 1 and 2, there is an invalid year: 3`.
 - An index that isn't in your list shows an invalid module index message.
 
-### Summarising semesters: `summary`
-
-Shows one line per semester containing modules, sorted by year and then semester, followed by an `Unplanned` line.
-
-**Format:** `summary`
-
-- Each semester line shows its module count, total MCs, and credit-weighted GPA rounded to two decimal places.
-- SU-ed modules and non-GPA grades (`CS` and `CU`) count towards module and MC totals but are excluded from GPA, just as with `gpa`.
-- A semester with no GPA-contributing credits shows `GPA n/a`.
-- The `Unplanned` line shows module and MC totals without a GPA. It is always included, even when there are no unplanned modules.
-- If no modules are recorded, the output is `Unplanned | 0 modules | 0 MCs`.
-
-**Example output:**
-
-```text
-Y1S1 | 3 modules | 18 MCs | GPA 4.35
-Y2S1 | 2 modules | 8 MCs | GPA 4.25
-Unplanned | 1 module | 4 MCs
-```
-
 ### Removing a module's semester: `unplan`
 
 Removes a module from its semester plan. The module stays in your records, it just no longer has a semester.
@@ -278,8 +231,104 @@ Shows the remaining SU quota. Lists out all the current SU-ed modules.
 
 **Format:** `quota`
 
+### Filtering modules: `filter`
+
+Shows only some of your modules: either the modules planned for a selected year and semester, or the modules that are not planned for any semester yet. The module numbers are the same as in the full `list`, so you can use them safely with commands such as `edit`, `delete`, `plan` and `unplan`.
+
+**Formats:**
+
+- `filter y/YEAR s/SEM` — shows the modules planned for that semester.
+- `filter unplanned` — shows the modules that have no semester.
+
+- `YEAR` is the year of study, from 1 to 4.
+- `SEM` is the semester, either 1 or 2.
+- For the semester form, both fields are required, in the order shown. An invalid year or semester shows an error message instead of a list.
+- Filtering only changes what is displayed; it does not modify or save your records.
+
+**Examples:**
+
+- `filter y/2 s/1` — shows the modules planned for Year 2 Semester 1.
+- `filter unplanned` — shows the modules still to be planned. You can then use their numbers with `plan`, for example `plan 2 y/2 s/1`.
+
+**Expected output of `filter y/2 s/1`** (if modules 2 and 5 belong to Year 2 Semester 1):
+
+```text
+Modules in Y2S1:
+2. MA1521 | 4 MCs | Grade: B+ | Y2S1
+5. CS2113 | 4 MCs | Grade: A- | Y2S1
+```
+
+If there are no matching modules, the program displays:
+
+```text
+No modules found in Y2S1.
+```
+
+**Expected output of `filter unplanned`** (if modules 2 and 3 have no semester):
+
+```text
+Modules not planned for any semester:
+2. MA1521 | 4 MCs | Grade: B+
+3. EE2026 | 4 MCs | Grade: B
+```
+
+If every module is planned, the program displays:
+
+```text
+All modules are planned.
+```
+
+If you have not added any modules yet, the program displays:
+
+```text
+No modules recorded yet.
+```
+
+### Summarising semesters: `summary`
+
+Shows one line per semester containing modules, sorted by year and then semester, followed by an `Unplanned` line.
+
+**Format:** `summary`
+
+- Each semester line shows its module count, total MCs, and credit-weighted GPA rounded to two decimal places.
+- SU-ed modules and non-GPA grades (`CS` and `CU`) count towards module and MC totals but are excluded from GPA, just as with `gpa`.
+- A semester with no GPA-contributing credits shows `GPA n/a`.
+- The `Unplanned` line shows module and MC totals without a GPA. It is always included, even when there are no unplanned modules.
+- If no modules are recorded, the output is `Unplanned | 0 modules | 0 MCs`.
+
+**Example output:**
+
+```text
+Y1S1 | 3 modules | 18 MCs | GPA 4.35
+Y2S1 | 2 modules | 8 MCs | GPA 4.25
+Unplanned | 1 module | 4 MCs
+```
+
 ### Exiting the program: `exit`
 
 Prints `Goodbye!` and exits ChatGPat.
 
 **Format:** `exit`
+
+## Command summary
+
+`INDEX` is the module number shown by `list`, starting from 1. Parts in square brackets are optional.
+
+| Action                         | Format                                              | Example                          |
+|--------------------------------|-----------------------------------------------------|----------------------------------|
+| Add a module                   | `add m/MODULE_CODE c/CREDITS g/GRADE`               | `add m/CS2113 c/4 g/A-`          |
+| List all modules               | `list`                                              | `list`                           |
+| Edit a module                  | `edit INDEX [m/MODULE_CODE] [c/CREDITS] [g/GRADE]`  | `edit 2 c/4 g/A`                 |
+| Delete a module                | `delete INDEX`                                      | `delete 2`                       |
+| Show your GPA                  | `gpa`                                               | `gpa`                            |
+| Apply S/U to a module          | `su INDEX`                                          | `su 2`                           |
+| Remove S/U from a module       | `unsu INDEX`                                        | `unsu 2`                         |
+| Show your remaining S/U quota  | `quota`                                             | `quota`                          |
+| Plan a module for a semester   | `plan INDEX y/YEAR s/SEM`                           | `plan 1 y/2 s/1`                 |
+| Remove a module's semester     | `unplan INDEX`                                      | `unplan 1`                       |
+| Filter modules by semester     | `filter y/YEAR s/SEM`                               | `filter y/2 s/1`                 |
+| Filter modules with no semester| `filter unplanned`                                  | `filter unplanned`               |
+| Summarise each semester        | `summary`                                           | `summary`                        |
+| Find the grade needed for a target GPA | `target GPA r/REMAINING_MCS`                | `target 4.5 r/8`                 |
+| Show the command list          | `help`                                              | `help`                           |
+| Exit the program               | `exit`                                              | `exit`                           |
