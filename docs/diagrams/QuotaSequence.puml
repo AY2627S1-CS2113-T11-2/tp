@@ -1,0 +1,40 @@
+@startuml
+!include style.puml
+
+participant ":CommandManager" as CM
+participant "<<class>>\nQuotaCommand" as QC
+participant ":QuotaCommand" as Q
+participant ":Student" as S
+participant ":Module" as M
+
+[-> CM ++ : processQuery("quota")
+CM -> QC ++ : parse("quota")
+create Q
+QC -> Q : QuotaCommand()
+activate Q
+Q --> QC
+deactivate Q
+QC --> CM -- : Optional.of(command)
+
+CM -> Q ++ : execute(student)
+Q -> S ++ : getRemainingSuQuota()
+S -> S ++ : getUsedSuMcs()
+loop for each module in moduleList
+    S -> M ++ : isSu()
+    M --> S -- : isSu
+end
+S --> S -- : usedMcs
+S --> Q -- : 24
+
+Q -> Q ++ : buildSuList(student)
+loop for each index from 1 to moduleCount
+    Q -> S ++ : getModule(index)
+    S --> Q -- : module
+    Q -> M ++ : isSu()
+    M --> Q -- : isSu
+end
+Q --> Q -- : list text
+Q --> CM -- : Response
+destroy Q
+[<-- CM -- : Response
+@enduml

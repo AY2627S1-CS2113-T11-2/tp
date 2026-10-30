@@ -585,6 +585,111 @@ The following sequence diagram shows how `unsu 2` is processed.
     * Pros: Can support an immutable module model.
     * Cons: Must copy every other module field and preserve its original list position.
 
+### GPA feature
+
+#### Implementation
+
+The GPA feature is facilitated by `GpaCommand` (a subclass of `Command`) and `Student#calculateGpa()`. It shows the student's GPA as a credit-weighted average of the grade points of all modules that count towards GPA. It does not change any data.
+
+* `GpaCommand#parse(String)` — matches `gpa(\s.*)?`, so extra text after `gpa` is ignored as stated in the User Guide, and returns a `GpaCommand`. Non-matching input returns `Optional.empty()` so the next parser can be tried.
+* `GpaCommand#execute(Student)` — calls `Student#calculateGpa()` and returns a `Response` containing `Your GPA is %.2f`. It uses the plain `Response` constructor, so no storage save is requested.
+* `Student#calculateGpa()` — calls the private helper `calculateGpaData(Iterable<Module>)`, then divides the total grade points by the total credits. If no module contributes, it throws `GpaException`.
+* `Student#calculateGpaData(Iterable<Module>)` — loops through the modules and skips any module that is SU-ed or whose `Grade#isAffectsGpa()` is false (such as `CS` and `CU`). For every other module it adds `Grade#getGradePoint() × credits` to the total grade points and the credits to the total credits, and returns both in a `GpaData` record.
+
+Given below is an example usage scenario.
+
+Step 1. The student has three modules recorded, none SU-ed: `CS2113 | 4 MCs | Grade: A-` (module 1), `MA1521 | 4 MCs | Grade: B+` (module 2) and `CS2040 | 4 MCs | Grade: A` (module 3).
+
+Step 2. The user executes `gpa`. `GpaCommand#parse` returns a `GpaCommand`.
+
+Step 3. `execute(student)` calls `Student#calculateGpa()`. The three modules contribute 4.5 × 4 + 4.0 × 4 + 5.0 × 4 = 54 grade points over 12 credits, so the GPA is 4.50.
+
+```text
+Your GPA is 4.50
+```
+
+If the user then executes `su 2`, module 2 is skipped and `gpa` shows `Your GPA is 4.75` ((18 + 20) ÷ 8).
+
+The following sequence diagram shows how `gpa` is processed.
+
+<img src="images/GpaSequence.png" alt="Sequence diagram of the Gpa command" width="760" />
+
+**Note:** If every module is SU-ed, has a non-GPA grade, or there are no modules at all, the total credits is 0. `Student#calculateGpa()` then throws `GpaException` with the message `No modules contribute to GPA. Add a graded module first.`, which `ChatGpat` prints like any other expected error. The original grades of SU-ed modules are not touched, so removing SU brings them back into the GPA.
+
+#### Design considerations
+
+**Aspect: How the modules that count towards GPA are chosen**
+
+* **Alternative 1 (current choice):** Use one private helper, `calculateGpaData`, that returns the grade points and credits of the modules that count.
+  * Pros: One place decides which modules count, so `gpa`, `target` and `summary` (which reuse the helper) always agree.
+  * Cons: The module list is read again every time a GPA is needed.
+* **Alternative 2:** Keep a running GPA total in `Student` and update it whenever a module is added, edited, deleted or SU-ed.
+  * Pros: Constant-time lookup.
+  * Cons: Every command that changes a grade, credit or SU status must update the total correctly, and one missed update would show a wrong GPA.
+
+**Aspect: What to show when no module counts towards GPA**
+
+* **Alternative 1 (current choice):** Throw `GpaException` with a message that tells the user what to do.
+  * Pros: Avoids a division by zero and does not show a number that looks real but means nothing.
+  * Cons: The user sees an error for a situation that is not really a mistake.
+* **Alternative 2:** Show `Your GPA is 0.00`.
+  * Pros: No error handling is needed.
+  * Cons: 0.00 is a valid GPA (all F grades), so the user could not tell the two cases apart.
+
+### Quota feature
+
+#### Implementation
+
+The quota feature is facilitated by `QuotaCommand` (a subclass of `Command`), `Student#getRemainingSuQuota()` and `Student#getUsedSuMcs()`. It shows how many SU credits the student can still use and lists every module that has been SU-ed. It does not change any data.
+
+* `QuotaCommand#parse(String)` — matches `quota(\s.*)?`, so extra text after `quota` is ignored as stated in the User Guide, and returns a `QuotaCommand`. Non-matching input returns `Optional.empty()`.
+* `QuotaCommand#execute(Student)` — calls `Student#getRemainingSuQuota()`, then builds the list of SU-ed modules and returns both in one `Response`. It uses the plain `Response` constructor, so no storage save is requested.
+* `Student#getRemainingSuQuota()` — subtracts `getUsedSuMcs()` from the student's total SU quota (28 MCs by default).
+* `Student#getUsedSuMcs()` — adds up the credits of every module for which `Module#isSu()` is true.
+* `QuotaCommand#buildSuList(Student)` — goes through positions 1 to `Student#getModuleCount()`, fetches each module with `Student#getModule(int)`, and keeps the ones that are SU-ed. Each line shows the module's position in the **full** list, so the number can be used directly with `unsu INDEX`.
+
+Given below is an example usage scenario.
+
+Step 1. The student has the quota of 28 MCs and three modules recorded. Module 2 is `MA1521 | 4 MCs | Grade: B+` and has been SU-ed with `su 2`.
+
+Step 2. The user executes `quota`. `QuotaCommand#parse` returns a `QuotaCommand`.
+
+Step 3. `execute(student)` calls `Student#getRemainingSuQuota()`, which counts 4 used MCs and returns 24. `buildSuList` then finds module 2 as the only SU-ed module and adds it to the response.
+
+```text
+Remaining SU quota: 24 MCs.
+Modules SU-ed so far:
+  2. MA1521 | 4 MCs | Grade: B+ [S/U]
+```
+
+If no module is SU-ed, the second part of the message is `No modules have been SU-ed yet.` instead of the list.
+
+The following sequence diagram shows how `quota` is processed.
+
+<img src="images/QuotaSequence.png" alt="Sequence diagram of the Quota command" width="760" />
+
+**Note:** The used quota is calculated from the SU flags of the modules every time, as explained in the design considerations of the SU feature. Because of this, `quota` always matches the result of `su`, `unsu`, `edit` and `delete`, and a module that is deleted gives its SU credits back.
+
+#### Design considerations
+
+**Aspect: Where the remaining quota is calculated**
+
+* **Alternative 1 (current choice):** `Student` calculates it, and `su`, `unsu` and `quota` all call the same method.
+  * Pros: The three commands always show the same number, and `QuotaCommand` stays small.
+  * Cons: `QuotaCommand` still depends on two `Student` methods, one for the number and one for the module list.
+* **Alternative 2:** `QuotaCommand` adds up the SU-ed credits itself.
+  * Pros: `Student` stays smaller.
+  * Cons: The rule for the quota would be written in two places and could drift apart.
+
+**Aspect: How SU-ed modules are numbered in the list**
+
+* **Alternative 1 (current choice):** Show each module's position in the full module list.
+  * Pros: The number matches `list`, so the user can type `unsu 2` straight from the `quota` output.
+  * Cons: The numbers can have gaps, for example 2 and 5.
+* **Alternative 2:** Number the SU-ed modules from 1.
+  * Pros: Looks tidier.
+  * Cons: `unsu 1` would act on a different module from the one shown as 1, which is easy to get wrong.
+
 ### Target GPA feature
 
 #### Implementation
@@ -599,9 +704,9 @@ The target GPA feature is facilitated by `TargetGpaCommand`, `Student#targetGPA(
 
 Let `P` be the current weighted grade-point total, `C` the current GPA-contributing MCs, `F` the remaining MCs, and `T` the target GPA. The required future average `R` is:
 
-\[
-R = \frac{T(C+F)-P}{F}
-\]
+```text
+R = (T × (C + F) − P) ÷ F
+```
 
 Given below is an example usage scenario.
 
