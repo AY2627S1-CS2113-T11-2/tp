@@ -3,144 +3,98 @@
 ## Acknowledgements
 
 * ChatGpat is developed on the SE-EDU `duke` project template.
-* Diagrams are written in [Mermaid](https://mermaid.js.org/) and rendered directly on GitHub.
+* The structure of this guide follows the [AddressBook-Level3 Developer Guide](https://se-education.org/addressbook-level3/DeveloperGuide.html).
+* Diagrams are drawn with [PlantUML](https://plantuml.com/) and exported as images, so that they also show on the GitHub Pages site.
 
 ## Design
 
+> **Tip:** The `.puml` files used to create the diagrams in this document are in the `docs/diagrams` folder. To update a diagram, edit its `.puml` file, export it as a PNG into `docs/images`, and commit both files.
+
 ### Architecture
 
-The skeleton follows a layered design:
+<img src="images/ArchitectureDiagram.png" alt="Architecture diagram" width="640" />
 
-- **Entry point**: `ChatGpat` constructs the components and runs the main loop.
-- **Presentation**: `ChatInterface` reads user input and prints responses.
-- **Dispatch**: `CommandManager` parses user input into a `Command` and executes it.
-- **Domain**: `Student` owns the module list; `Module` represents a single record.
-- **Persistence**: `Storage` reads and writes local text records and returns diagnostics without printing.
-- **Cross-cutting**: `Command` (abstract), `Response`, `Parser`, and the custom exceptions.
+The *Architecture Diagram* given above explains the high-level design of ChatGpat. Given below is a quick overview of its main components and how they interact with each other.
 
-The diagram below shows the classes and their dependencies in the skeleton.
+**Main components of the architecture**
 
-```mermaid
-classDiagram
-    class ChatGpat {
-        +main(args)
-        -run()
-    }
-    class ChatInterface {
-        +printWelcome()
-        +printResponse(Response)
-        +printError(Exception)
-        +getUserQuery() String
-    }
-    class CommandManager {
-        +processQuery(String) Response
-    }
-    class Command {
-        <<abstract>>
-        +execute(Student) Response
-    }
-    class Response {
-        +message() String
-        +hasModule() boolean
-    }
-    class Parser {
-        <<interface>>
-        +parse(String) Optional~Command~
-    }
-    class Student {
-        +getModule(int) Module
-        +getModuleCount() int
-    }
-    class Module {
-        -String moduleCode
-        -int credit
-        -Grade grade
-        -boolean isSuApplied
-    }
+`ChatGpat` is the entry point. It constructs the other components when the app starts and runs the main loop: read a line, hand it over for execution, and print the result.
 
-    ChatGpat --> "1" ChatInterface : ui
-    ChatGpat --> "1" Student : student
-    ChatGpat --> "1" CommandManager : commandManager
-    CommandManager --> "1" Student : student
-    CommandManager --> "0..*" Parser : parsers
-    CommandManager ..> Command : executes
-    Parser ..> Command : creates
-    Command --> "1" Student : student
-    Command ..> Response : returns
-    Student --> "0..*" Module : moduleList
-    ChatInterface ..> Response
-```
+The rest of the app is made up of four components:
 
-The concrete `*Command` subclasses are omitted here. `Parser<Command>` is a functional interface, so each command provides a `parse` method reference that becomes one `Parser` in `CommandManager`.
+* **UI** (`ChatInterface`): reads the user's input and prints every response. It is the only class that prints, so commands never print themselves.
+* **Logic** (`CommandManager`, `Parser`, `Command`, `Response`): turns a line of text into a `Command` and executes it. In the diagrams of the individual features, this is the *Dispatch* layer.
+* **Model** (`Student`, `Module`): holds the module records in memory. In the diagrams of the individual features, this is the *Domain* layer.
+* **Storage** (`Storage`): reads and writes local text records and returns diagnostics without printing.
 
-**How the components interact.** When the user types a command, `ChatGpat` passes it to `CommandManager.processQuery`. `CommandManager` asks each `Parser` in turn; the first one that returns a `Command` wins. The command is executed with the `Student` object, and the returned `Response` is printed by `ChatInterface`. The loop repeats until the process is terminated.
+A set of **common classes**, mainly the custom exceptions, is used by several components.
 
-The sequence diagram below shows one full iteration of the loop for `add m/CS2113 c/4 g/A-`.
+**How the architecture components interact with each other**
 
-```mermaid
-sequenceDiagram
-    participant Main as ChatGpat
-    participant UI as ChatInterface
-    participant CM as CommandManager
-    participant P as Parser
-    participant S as Student
+The *Sequence Diagram* below shows one full iteration of the main loop, for the input `add m/CS2113 c/4 g/A-`.
 
-    activate Main
+<img src="images/ArchitectureSequence.png" alt="Sequence diagram of one iteration of the main loop" width="760" />
 
-    Main->>UI: printWelcome()
-    activate UI
-    UI-->>Main: banner printed
-    deactivate UI
+When the user types a command, `ChatGpat` passes it to `CommandManager#processQuery`. `CommandManager` asks each `Parser` in turn, and the first one that returns a `Command` wins. The diagram shows only the parser of `AddCommand`, because the parsers tried before it return an empty `Optional` for this input. The command is executed with the `Student` object, and the returned `Response` is printed by `ChatInterface`. The loop repeats until the user exits.
 
-    loop until terminated
-        Main->>UI: getUserQuery()
-        activate UI
-        UI-->>Main: "add m/CS2113 c/4 g/A-"
-        deactivate UI
+If something goes wrong, the code throws an exception that is a subclass of `ChatGpatException`. `ChatGpat#run` catches it and prints its message as a normal response. Any other unexpected exception is caught by a second `catch` block, which prints a generic error and logs the details. Either way, the loop continues.
 
-        Main->>CM: processQuery(query)
-        activate CM
-
-        CM->>P: parse(query)
-        activate P
-        create participant Cmd as AddCommand
-        P->>Cmd:
-        P-->>CM: Optional.of(Cmd)
-        deactivate P
-
-        CM->>Cmd: execute(student)
-        activate Cmd
-
-        create participant M as Module
-        Cmd->>M: new Module(...)
-        Cmd->>S: addModule(module)
-        activate S
-        S-->>Cmd: ok
-        deactivate S
-
-        Cmd-->>CM: Response
-        deactivate Cmd
-
-        CM-->>Main: Response
-        deactivate CM
-
-        Main->>UI: printResponse(response)
-        activate UI
-        UI-->>Main: response printed
-    end
-
-    deactivate Main
-```
+The sections below give more details of each component.
 
 ### UI component
 
+<img src="images/UiClassDiagram.png" alt="Class diagram of the UI component" width="560" />
+
+The UI component consists of the class `ChatInterface`.
+
+It does the following:
+
+* prints the welcome message (`printWelcome`), responses (`printResponse`) and error messages (`printError`)
+* reads one line of input from the user (`getUserQuery`)
+* shows the message of a `Response` and, if the response contains a module (`hasModule`), that module as well, so that the user can see what a command changed
+
+`ChatInterface` does not know how a command works. It depends only on `Response`, which is what the Logic component returns. All other components return values or throw exceptions instead of printing.
+
 ### Logic component
+
+<img src="images/LogicClassDiagram.png" alt="Class diagram of the Logic component" width="700" />
+
+The Logic component turns the user's input into a change in the Model. Here is how it works:
+
+1. `ChatGpat` calls `CommandManager#processQuery` with the line that the user typed.
+2. `CommandManager` holds a list of `Parser<Command>` objects. Each command class (shown as `XYZCommand` in the diagram, standing for `AddCommand`, `DeleteCommand` and so on) provides a static `parse` method, and each of these methods is registered as one `Parser`.
+3. `CommandManager` tries the parsers in order and uses the first one that returns a `Command`. If none does, it throws `UnknownCommandException`.
+4. A parser returns an empty `Optional` if the input is not meant for it. A command that claims a keyword (`edit`, `plan` and `unplan`) instead throws its own exception with a usage message when the arguments are malformed, so that the user does not see a misleading "unknown command".
+5. `CommandManager` calls `Command#execute(Student)`. The command asks `Student` to make the change and returns a `Response` that holds a message and, optionally, a module.
+
+`Command` is abstract, and `Response` is a plain value object. Neither of them prints anything.
 
 ### Model component
 
+<img src="images/ModelClassDiagram.png" alt="Class diagram of the Model component" width="680" />
+
+The Model component consists of `Student`, `Module`, `Grade` and `Semester`. It:
+
+* stores all recorded modules in the list `moduleList` of `Student`
+* identifies a module to the outside by its position in that list, counting from 1 (the `INDEX` used by commands such as `edit` and `delete`)
+* stores the details of a module in `Module`: its code, credits, `Grade` (an enumeration), whether S/U is applied, and an optional `Semester`
+* treats a `null` semester as "not planned yet". `Semester` is an immutable record of a year (1 to 4) and a semester number (1 or 2), and it throws `PlanException` for out-of-range values
+* validates its input before changing anything. When something is wrong, `Student` throws a subclass of `ChatGpatException` (for example `InvalidIndexException` or `DuplicateModuleException`) and leaves the data unchanged
+* does not depend on any other component, and does not print
+
+The diagram omits the other query and update methods of `Student` and some descriptive fields of `Module`.
+
 ### Storage component
 
+The Storage component (`Storage`) reads and writes the module records as local text. It returns diagnostics, such as a line it could not read, to its caller instead of printing them, so that `ChatInterface` remains the only class that prints. The details of the file format and the loading and saving flow are in the *Local storage* section under *Implementation*.
+
 ### Common classes
+
+<img src="images/CommonClassDiagram.png" alt="Class diagram of the exception classes" width="700" />
+
+The classes in this section are used by more than one component. They are the exceptions of ChatGpat.
+
+`ChatGpatException` is an abstract, unchecked exception. Every error that the user can cause has its own subclass, for example `InvalidIndexException`, `EditException` or `PlanException`, which carries a message that is meant to be shown to the user. `ChatGpat#run` catches `ChatGpatException` and prints the message, so a bad command never ends the program.
 
 ---
 
