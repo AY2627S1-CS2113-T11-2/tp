@@ -8,9 +8,12 @@ participant "<<class>>\nAddCommand" as AC
 participant ":AddCommand" as A
 participant ":Module" as M
 participant ":Student" as S
+participant ":Storage" as ST
 
 activate Main
-Main -> UI ++ : printWelcome()
+Main -> ST ++ : load()
+ST --> Main -- : LoadResult
+Main -> UI ++ : printWelcome(warnings)
 UI --> Main --
 
 loop until terminated
@@ -38,7 +41,12 @@ loop until terminated
     destroy A
     CM --> Main -- : Response
 
-    Main -> UI ++ : printResponse(response)
+    opt response requests a save
+        Main -> ST ++ : save(modules)
+        ST --> Main -- : Optional.empty()
+    end
+
+    Main -> UI ++ : printResponse(response, warnings)
     UI --> Main --
 end
 deactivate Main
