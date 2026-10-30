@@ -1,0 +1,39 @@
+@startuml
+!include style.puml
+left to right direction
+
+class ChatGpat
+
+package "Storage" as StoragePkg #F3EDF9 {
+    class Storage {
+        + {static} DEFAULT_FILE_PATH : Path
+        - file : Path
+        + load() : LoadResult
+        + save(modules : List<Module>) : Optional<String>
+    }
+
+    class "LoadResult" as LoadResult <<record>> {
+        + modules() : List<Module>
+        + warnings() : List<String>
+    }
+}
+
+package "Model" as ModelPkg #FBE9E7 {
+    class Module
+    class Semester <<record>>
+    class Grade <<enumeration>>
+}
+
+ChatGpat ..> Storage : loads and\nsaves with >
+Storage ..> LoadResult : returns >
+LoadResult --> "0..*" Module : modules >
+Storage ..> Module : reads and\nwrites >
+Storage ..> Grade : parses >
+Storage ..> Semester : parses >
+
+note bottom of Storage
+  Reads and writes data/modules.txt.
+  Never prints: problems are returned
+  as warnings or an error message.
+end note
+@enduml

@@ -32,5 +32,5 @@ Command ..> Response : returns
 Command ..> Student
 ChatInterface ..> Response
 Student --> "0..*" Module : moduleList
-Storage ..> Student
+Storage ..> Module
 @enduml

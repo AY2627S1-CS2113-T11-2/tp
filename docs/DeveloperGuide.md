@@ -35,7 +35,9 @@ The *Sequence Diagram* below shows one full iteration of the main loop, for the 
 
 <img src="images/ArchitectureSequence.png" alt="Sequence diagram of one iteration of the main loop" width="760" />
 
-When the user types a command, `ChatGpat` passes it to `CommandManager#processQuery`. `CommandManager` asks each `Parser` in turn, and the first one that returns a `Command` wins. The diagram shows only the parser of `AddCommand`, because the parsers tried before it return an empty `Optional` for this input. The command is executed with the `Student` object, and the returned `Response` is printed by `ChatInterface`. The loop repeats until the user exits.
+When the app starts, `ChatGpat` asks `Storage` to load the saved modules, adds them to the `Student` object (not shown in the diagram), and passes any warnings about unreadable records to `ChatInterface`. After that, the main loop in the diagram runs.
+
+When the user types a command, `ChatGpat` passes it to `CommandManager#processQuery`. `CommandManager` asks each `Parser` in turn, and the first one that returns a `Command` wins. The diagram shows only the parser of `AddCommand`, because the parsers tried before it return an empty `Optional` for this input. The command is executed with the `Student` object. If the returned `Response` says that data was changed, as it does for `add`, `ChatGpat` asks `Storage` to save the modules. Then `ChatInterface` prints the `Response` together with any save error. The loop repeats until the user exits.
 
 If something goes wrong, the code throws an exception that is a subclass of `ChatGpatException`. `ChatGpat#run` catches it and prints its message as a normal response. Any other unexpected exception is caught by a second `catch` block, which prints a generic error and logs the details. Either way, the loop continues.
 
@@ -86,7 +88,21 @@ The diagram omits the other query and update methods of `Student` and some descr
 
 ### Storage component
 
-The Storage component (`Storage`) reads and writes the module records as local text. It returns diagnostics, such as a line it could not read, to its caller instead of printing them, so that `ChatInterface` remains the only class that prints. The details of the file format and the loading and saving flow are in the *Local storage* section under *Implementation*.
+<img src="images/StorageClassDiagram.png" alt="Class diagram of the Storage component" width="760" />
+
+The Storage component (`Storage`) keeps the module records between runs of the app. It
+
+* saves the modules as one line of text per module in `data/modules.txt`, and reads them back when the app starts. Its constructor also accepts a `Path`, so tests can use a temporary file.
+* returns what it loaded as a `LoadResult`, a record that holds the valid `Module` objects and a list of warnings for the lines it could not read, such as an unknown grade or a duplicate module code. One bad line never stops the other lines from loading, and a missing file is treated as an empty record.
+* returns `Optional.empty()` from `save` when it succeeds and an error message when the file cannot be written. The modules stay in memory after a failed save, so the next successful save writes the whole list again.
+* depends on the Model classes `Module`, `Semester` and `Grade` only to create and read them. It does not depend on the UI, the Logic component or `Student`, and it never prints: warnings and errors are returned to `ChatGpat`, which passes them to `ChatInterface`.
+
+Only `ChatGpat` uses `Storage`. The sequence diagram below shows when: once at startup, and after a command that changes data. Commands that only show information, and commands that fail, do not request a save.
+
+<img src="images/StorageSequence.png" alt="Sequence diagram of loading at startup and saving after a command" width="760" />
+
+The file format, the escaping rules and how to extend them are described in the *Local storage* section under *Implementation*.
+
 
 ### Common classes
 

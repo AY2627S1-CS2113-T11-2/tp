@@ -1,0 +1,42 @@
+@startuml
+!include style.puml
+
+participant ":ChatGpat" as CG
+participant ":Storage" as ST
+participant ":Student" as S
+participant ":CommandManager" as CM
+participant ":Response" as R
+participant ":ChatInterface" as UI
+
+== Startup ==
+[-> CG ++ : run()
+CG -> ST ++ : load()
+loop for each line in data/modules.txt
+    ST -> ST : parseModule(line)
+end
+ST --> CG -- : LoadResult
+loop for each module in LoadResult
+    CG -> S : addModule(module)
+end
+CG -> UI : printWelcome(warnings)
+
+== After a command ==
+CG -> CM ++ : processQuery("delete 2")
+CM --> CG -- : response
+CG -> R ++ : isDataChanged()
+R --> CG -- : true
+opt data changed
+    CG -> S ++ : getModules()
+    S --> CG -- : modules
+    CG -> ST ++ : save(modules)
+    ST -> ST : formatModule(module) for each module,\nwrite a temporary file, then\nreplace data/modules.txt
+    alt saved
+        ST --> CG : Optional.empty()
+    else I/O or access error
+        ST --> CG : Optional.of(error message)
+    end
+    deactivate ST
+end
+CG -> UI : printResponse(response, warnings)
+deactivate CG
+@enduml
