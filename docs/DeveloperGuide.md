@@ -102,6 +102,18 @@ The classes in this section are used by more than one component. They are the ex
 
 This section describes noteworthy details on how certain features are implemented.
 
+### Help feature
+
+#### Implementation
+
+`HelpCommand` returns the command reference in a `Response`, leaving the application running without saving. Its parser accepts `help` with optional whitespace-separated arguments but rejects words such as `helpful`. Unknown-command errors direct users to `help`.
+
+#### Design considerations
+
+The help text is stored in `HelpCommand` and printed by `ChatInterface`. Update it when registering new commands in `CommandManager`.
+
+**Verification:** `CommandManagerTest` checks help text, extra arguments, invalid keywords and the non-exit response.
+
 ### Add Module feature
 
 #### Implementation
@@ -125,15 +137,15 @@ Add Module feature is executed.
 
 <img src="images/AddModuleSequence.png" alt="Sequence diagram of the add modules command" width="760" />
 
-**Note:** Duplicate checking is case-insensitive. The uploaded `Module` constructor currently initializes `isSuApplied` to `false` even though it accepts an `isSuApplied` parameter. The command's exact syntax beyond the architecture example should be checked against `AddCommand.java`.
+**Note:** Duplicate checking is case-insensitive. The `Module` constructor preserves the supplied `isSuApplied` value so saved S/U status can be restored. The command's exact syntax beyond the architecture example should be checked against `AddCommand.java`.
 
 ### List All Modules feature
 
 #### Implementation
 
-The list feature displays the student's recorded modules in insertion order. In the uploaded domain code, it is facilitated by `Student#printModuleList()` and `Module#toString()`.
+The list feature displays the student's recorded modules in insertion order through `ListCommand` and `Module#toString()`. The former `Student#printModuleList()` method has been removed.
 
-* `Student#printModuleList()` — prints `No modules recorded yet.` if the list is empty. Otherwise, it prints a heading and iterates through `moduleList`, numbering entries from 1.
+* `ListCommand#execute(Student)` — returns a `Response` containing `No modules recorded yet.` if the list is empty, or a heading and module entries numbered from 1. `ChatInterface` prints the response.
 * `Module#toString()` — formats each entry as `MODULE_CODE | CREDIT MCs | Grade: GRADE`, with ` [S/U]` appended if S/U has been applied.
 * `Student#getModuleCount()` and `Student#getModule(int)` — provide the count and 1-based indexed access for other commands. `getModule` throws `InvalidIndexException` for an invalid index.
 
@@ -141,7 +153,7 @@ Given below is an example usage scenario.
 
 Step 1. The student has added `CS2113` (4 MCs, A-) and `MA1521` (4 MCs, B+).
 
-Step 2. The user enters `list`. The command dispatch layer selects the list operation (the exact command class is not included in the uploaded files).
+Step 2. The user enters `list`. The command dispatch layer selects `ListCommand`.
 
 Step 3. The displayed list is:
 
@@ -161,10 +173,10 @@ The following sequence diagram illustrates the existing `Student#printModuleList
 
 **Aspect: How list output is produced**
 
-* **Alternative 1 (current domain implementation):** `Student#printModuleList()` prints the records directly.
+* **Alternative 1:** Have `Student` print the records directly.
   * Pros: Simple implementation with straightforward numbering and formatting.
   * Cons: Couples domain logic to console output and makes output testing harder.
-* **Alternative 2:** A list command builds a `Response` and delegates printing to `ChatInterface`.
+* **Alternative 2 (current choice):** A list command builds a `Response` and delegates printing to `ChatInterface`.
   * Pros: Consistent with the layered architecture and easier to test without capturing console output.
   * Cons: Requires the command or response model to carry the formatted list.
 
@@ -343,7 +355,7 @@ The unplan feature removes a module's semester again. It is facilitated by `Unpl
 
 * `UnplanCommand#parse(String)` — matches `unplan\s+(\d+)` and returns an `UnplanCommand`. It does not clash with `PlanCommand`, because that parser only claims input that starts with `plan`.
 * `Student#unplanModule(int)` — gets the module with `getModule`. If its semester is `null`, it throws a `PlanException` saying the module is not planned. Otherwise it calls `setSemester(null)` and returns the module.
-* `UnplanCommand#execute(Student)` — returns a `Response` with the message and the module.
+* `UnplanCommand#execute(Student)` — returns `Response.forDataChange(message, module)` to request an automatic save.
 
 The following sequence diagram shows how `unplan 1` is processed.
 
@@ -369,58 +381,6 @@ The following sequence diagram shows how `unplan 1` is processed.
   * Pros: No new command.
   * Cons: An unclear special case that makes `Semester` validation harder.
     
-### Target GPA feature
-
-#### Implementation
-
-The target GPA feature is facilitated by `TargetGpaCommand`, `Student#targetGPA(double, int)`, `Student#calculateGpaData()` and `Grade#estimateLetterGrade(double)`. It calculates the average grade point needed over the remaining modular credits to reach a desired cumulative GPA.
-
-* `TargetGpaCommand#parse(String)` — matches `target\\s+(\\S+)\\s+r/(\\S+)`, converts the target to a `double` and the remaining MCs to an `int`, and creates a `TargetGpaCommand`. If the pattern does not match, it returns `Optional.empty()`. Numeric conversion errors can propagate as `NumberFormatException`.
-* `TargetGpaCommand#execute(Student)` — calls `Student#targetGPA(target, remainingMcs)` and wraps the returned message in a `Response`.
-* `Student#calculateGpaData()` — iterates through the recorded modules and returns a private `GpaData` record containing the total weighted grade points and GPA-contributing credits. S/U modules and grades such as `CS` and `CU` are excluded.
-* `Student#targetGPA(double, int)` — checks that the target is greater than 0 and at most 5.0, and that the remaining MCs are positive. It throws `TargetException` for invalid values and `GpaException` when no recorded module contributes to GPA. It then calculates the required average and returns the appropriate message.
-* `Grade#estimateLetterGrade(double)` — provides the approximate letter grade shown alongside a reachable required average.
-
-Let `P` be the current weighted grade-point total, `C` the current GPA-contributing MCs, `F` the remaining MCs, and `T` the target GPA. The required future average `R` is:
-
-\[
-R = \frac{T(C+F)-P}{F}
-\]
-
-Given below is an example usage scenario.
-
-Step 1. The student has recorded `CS2113` (4 MCs, A-) and `MA1521` (4 MCs, B+). The current GPA is 4.25 over 8 MCs, so `P = 34`.
-
-Step 2. The user executes `target 4.50 r/8`. `TargetGpaCommand#parse` constructs a command with target 4.50 and 8 remaining MCs.
-
-Step 3. `execute(student)` calls `Student#targetGPA(4.50, 8)`. The required average is `(4.50 × 16 − 34) / 8 = 4.75`. The returned `Response` includes the current GPA, required grade point and an approximate letter grade.
-
-The following sequence diagram shows how `target 4.50 r/8` is processed.
-
-<img src="images/TargetGpaSequence.png" alt="Sequence diagram of the targetGPA command" width="760" />
-
-**Note:** `Student#targetGPA` handles three outcomes: if `R <= 0`, the target is already secured; if `R > 5`, it reports the best achievable GPA assuming 5.0 in every remaining MC; otherwise it reports `R` and an approximate letter grade. Invalid target values or remaining MCs are rejected before calculation. The current implementation uses `target <= 0` as its lower-bound check, although its exception text describes the interval as inclusive of 0.0.
-
-#### Design considerations
-
-**Aspect: Where the GPA calculation is performed**
-
-* **Alternative 1 (current choice):** `Student#targetGPA` performs the calculation, while `TargetGpaCommand` handles parsing and creates the `Response`.
-  * Pros: Keeps GPA business rules in the domain layer and makes the command straightforward to test.
-  * Cons: Adds calculation and message-formatting responsibilities to `Student`.
-* **Alternative 2:** Calculate the required average inside `TargetGpaCommand`.
-  * Pros: Keeps the calculation close to its command.
-  * Cons: Duplicates GPA-related logic and mixes command processing with domain rules.
-
-**Aspect: How GPA totals are reused**
-
-* **Alternative 1 (current choice):** Use a private `GpaData` record returned by `calculateGpaData()`.
-  * Pros: Both current and target GPA calculations use the same credit-weighted totals and exclusions.
-  * Cons: Requires an additional helper method and record.
-* **Alternative 2:** Recompute totals separately in `calculateGpa()` and `targetGPA()`.
-  * Pros: Fewer helper declarations.
-  * Cons: Repeats iteration logic and risks inconsistent exclusions.
-
 ### Filter feature
 
 #### Implementation
@@ -507,6 +467,23 @@ The following sequence diagram shows how `filter unplanned` is processed.
   * Cons: Duplicated code, so a change in the output format must be made in two places.
 
 The filter feature is covered by `FilterCommandTest` and `FilterUnplannedCommandTest`. They check parsing, the output for matching and empty results, that original indexes are kept, that invalid years and semesters throw `PlanException`, and that unplanned modules are never matched by a semester filter.
+
+### Summary feature
+
+#### Implementation
+
+`summary` displays module counts, MCs and GPA by semester.
+
+* `SummaryCommand#parse(String)` accepts `summary` and ignores arguments separated by whitespace.
+* `Student#getSemesterSummaries()` groups modules in a `TreeMap`, ordered by year and term, with the unplanned group last. It returns `SemesterSummary` records without reordering the original module list.
+* All modules count towards totals. The shared `calculateGpaData(Iterable<Module>)` helper excludes S/U modules and `CS`/`CU` grades from GPA.
+* `SummaryCommand#execute(Student)` formats GPA to two decimal places using `Locale.ROOT`, or `GPA n/a` when no credits contribute. The unplanned line has no GPA and always appears, including `Unplanned | 0 modules | 0 MCs` for empty records.
+
+#### Design considerations
+
+Grouping and calculations stay in `Student`; the command formats the response. Reusing the GPA helper keeps exclusions consistent. This read-only command does not request a save.
+
+**Verification:** `SummaryCommandTest` covers ordering, totals, exclusions, empty records and locale-independent formatting. `CommandManagerTest` checks summaries after module changes.
 
 ### SU feature
 
@@ -608,6 +585,70 @@ The following sequence diagram shows how `unsu 2` is processed.
     * Pros: Can support an immutable module model.
     * Cons: Must copy every other module field and preserve its original list position.
 
+### Target GPA feature
+
+#### Implementation
+
+The target GPA feature is facilitated by `TargetGpaCommand`, `Student#targetGPA(double, int)`, `Student#calculateGpaData(Iterable<Module>)` and `Grade#estimateLetterGrade(double)`. It calculates the average grade point needed over the remaining modular credits to reach a desired cumulative GPA.
+
+* `TargetGpaCommand#parse(String)` — matches `target\\s+(\\S+)\\s+r/(\\S+)`, converts the target to a `double` and the remaining MCs to an `int`, and creates a `TargetGpaCommand`. If the pattern does not match, it returns `Optional.empty()`. Numeric conversion errors can propagate as `NumberFormatException`.
+* `TargetGpaCommand#execute(Student)` — calls `Student#targetGPA(target, remainingMcs)` and wraps the returned message in a `Response`.
+* `Student#calculateGpaData(Iterable<Module>)` — iterates through the supplied modules and returns a private `GpaData` record containing the total weighted grade points and GPA-contributing credits. S/U modules and grades such as `CS` and `CU` are excluded.
+* `Student#targetGPA(double, int)` — checks that the target is greater than 0 and at most 5.0, and that the remaining MCs are positive. It throws `TargetException` for invalid values and `GpaException` when no recorded module contributes to GPA. It then calculates the required average and returns the appropriate message.
+* `Grade#estimateLetterGrade(double)` — provides the approximate letter grade shown alongside a reachable required average.
+
+Let `P` be the current weighted grade-point total, `C` the current GPA-contributing MCs, `F` the remaining MCs, and `T` the target GPA. The required future average `R` is:
+
+\[
+R = \frac{T(C+F)-P}{F}
+\]
+
+Given below is an example usage scenario.
+
+Step 1. The student has recorded `CS2113` (4 MCs, A-) and `MA1521` (4 MCs, B+). The current GPA is 4.25 over 8 MCs, so `P = 34`.
+
+Step 2. The user executes `target 4.50 r/8`. `TargetGpaCommand#parse` constructs a command with target 4.50 and 8 remaining MCs.
+
+Step 3. `execute(student)` calls `Student#targetGPA(4.50, 8)`. The required average is `(4.50 × 16 − 34) / 8 = 4.75`. The returned `Response` includes the current GPA, required grade point and an approximate letter grade.
+
+The following sequence diagram shows how `target 4.50 r/8` is processed. Its `calculateGpaData()` call now takes `moduleList` as an argument.
+
+<img src="images/TargetGpaSequence.png" alt="Sequence diagram of the targetGPA command" width="760" />
+
+**Note:** `Student#targetGPA` handles three outcomes: if `R <= 0`, the target is already secured; if `R > 5`, it reports the best achievable GPA assuming 5.0 in every remaining MC; otherwise it reports `R` and an approximate letter grade. Invalid target values or remaining MCs are rejected before calculation. The current implementation uses `target <= 0` as its lower-bound check, although its exception text describes the interval as inclusive of 0.0.
+
+#### Design considerations
+
+**Aspect: Where the GPA calculation is performed**
+
+* **Alternative 1 (current choice):** `Student#targetGPA` performs the calculation, while `TargetGpaCommand` handles parsing and creates the `Response`.
+  * Pros: Keeps GPA business rules in the domain layer and makes the command straightforward to test.
+  * Cons: Adds calculation and message-formatting responsibilities to `Student`.
+* **Alternative 2:** Calculate the required average inside `TargetGpaCommand`.
+  * Pros: Keeps the calculation close to its command.
+  * Cons: Duplicates GPA-related logic and mixes command processing with domain rules.
+
+**Aspect: How GPA totals are reused**
+
+* **Alternative 1 (current choice):** Use a private `GpaData` record returned by `calculateGpaData(Iterable<Module>)`.
+  * Pros: Overall, target and semester GPA calculations share the same credit-weighted totals and exclusions.
+  * Cons: Requires an additional helper method and record.
+* **Alternative 2:** Recompute totals separately in `calculateGpa()` and `targetGPA()`.
+  * Pros: Fewer helper declarations.
+  * Cons: Repeats iteration logic and risks inconsistent exclusions.
+
+### Exit feature
+
+#### Implementation
+
+`ExitCommand` accepts `exit` with optional whitespace-separated arguments and returns `Goodbye!` with `Response.isExit()` set to `true`. `ChatInterface` prints the message without another prompt, then `ChatGpat#run` returns.
+
+#### Design considerations
+
+The response flag keeps application termination in the main loop. Exit does not trigger a save: successful data-changing commands already save automatically.
+
+**Verification:** `ExitCommandTest` checks parsing and the farewell response; `CommandManagerTest` checks dispatch and the exit flag.
+
 ### Local storage
 
 `Storage` owns the UTF-8 file at `data/modules.txt`, relative to the process working directory. Its constructor also accepts a `Path` so tests can use JUnit's `@TempDir`. No file is created by loading a missing path.
@@ -682,7 +723,7 @@ This lets the student make informed S/U decisions and plan ahead which modules t
 |v2.0|student|filter my modules that are not planned yet|find which modules still need a semester|
 |v2.0|student|see a summary of my modules by semester|compare my semesters at a glance|
 |v2.0|student with a GPA goal|set a target GPA|see the average grade I need in my remaining modules to reach it|
-|v2.0|student|have my modules saved when I exit and loaded when I return|avoid re-entering my records every time|
+|v2.0|student|have my modules saved after changes and loaded when I return|avoid re-entering my records every time|
 
 ## Non-Functional Requirements
 
