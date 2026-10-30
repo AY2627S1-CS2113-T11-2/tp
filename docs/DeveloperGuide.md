@@ -168,6 +168,16 @@ The following sequence diagram illustrates the existing `Student#printModuleList
   * Pros: Consistent with the layered architecture and easier to test without capturing console output.
   * Cons: Requires the command or response model to carry the formatted list.
 
+### Index-based module commands
+
+`delete`, `edit`, `plan` and `unplan` all act on one module, chosen by its position in the list shown by `list` (`INDEX`, starting from 1). They share the same flow:
+
+1. `CommandManager` asks each `Parser<Command>` in turn. The `parse` method of the matching command checks the input with regular expressions and returns a `Command`, or an empty `Optional` if the input is not meant for it.
+2. `Command#execute(Student)` asks `Student` to change the data, then returns a `Response`. By design, commands do not print: `ChatInterface` prints every `Response`.
+3. `Student` looks the module up with `Student#getModule(int)`, which throws `InvalidIndexException` when the index is out of range. Expected errors such as this are `ChatGpatException`s: `ChatGpat#run` catches them and prints the message as a normal response. Any other unexpected exception is caught by a second `catch` block, which prints a generic error and logs the details. Either way the program keeps running, and the commands above validate their input before changing any data.
+
+The sequence diagrams below follow the UML notation used in the course: `:Name` is an object, `<<class>>` marks a class on which a class-level (static) method such as `parse` is called, and a dashed arrow is a return.
+
 ### Delete feature
 
 #### Implementation
@@ -188,23 +198,7 @@ Step 3. `CommandManager` calls `execute(student)` on it. `Student#deleteModule(2
 
 The following sequence diagram shows how the `delete 2` command is processed.
 
-```mermaid
-sequenceDiagram
-  participant CM as :CommandManager
-  participant DC as DeleteCommand
-  participant S as :Student
-
-  CM->>DC: parse("delete 2")
-  create participant D as :DeleteCommand
-  DC->>D: new DeleteCommand(2)
-  DC-->>CM: Optional.of(command)
-
-  CM->>D: execute(student)
-  D->>S: deleteModule(2)
-  S->>S: getModule(2)
-  S-->>D: removed module
-  D-->>CM: Response("Removed module 2:", module)
-```
+<img src="images/DeleteSequence.png" alt="Sequence diagram of the delete 2 command" width="640" />
 
 **Note:** If the index is out of range, `deleteModule` throws `InvalidIndexException` before anything is removed, so no data changes. Because the modules after the deleted one move up by one, the user should run `list` again before using another index.
 
@@ -213,20 +207,20 @@ sequenceDiagram
 **Aspect: How the user picks the module to delete**
 
 * **Alternative 1 (current choice):** By the `INDEX` shown in `list`.
-    * Pros: Short to type, and the same for `edit`, `su`, `unsu`, `plan` and `unplan`.
-    * Cons: Indexes shift after a delete, so the user must `list` again.
+  * Pros: Short to type, and the same for `edit`, `su`, `unsu`, `plan` and `unplan`.
+  * Cons: Indexes shift after a delete, so the user must `list` again.
 * **Alternative 2:** By module code.
-    * Pros: Stable even after other modules are removed.
-    * Cons: Longer to type, and typos or letter-case differences need extra handling.
+  * Pros: Stable even after other modules are removed.
+  * Cons: Longer to type, and typos or letter-case differences need extra handling.
 
 **Aspect: Who reports the result**
 
 * **Alternative 1 (current choice):** `Student` returns the removed module and `DeleteCommand` builds the `Response`.
-    * Pros: The output goes through `ChatInterface` only, and `Student` can be tested without capturing console output.
-    * Cons: Slightly more code in each command.
+  * Pros: Only `ChatInterface` prints, and `Student` can be tested without capturing console output.
+  * Cons: Slightly more code in each command.
 * **Alternative 2:** `Student` prints the result itself.
-    * Pros: Less code.
-    * Cons: Output handling is spread across classes, which is harder to test and breaks the layering.
+  * Pros: Less code.
+  * Cons: Output handling is spread across classes, which is harder to test and breaks the layering.
 
 ### Edit feature
 
@@ -234,81 +228,29 @@ sequenceDiagram
 
 The edit feature is facilitated by `EditCommand`, `Student#editModule(int, String, Integer, Grade)` and the setters in `Module`.
 
-* `EditCommand#parse(String)` — claims the input if it is `edit` or starts with `edit ` (so that a malformed edit gets a helpful message instead of "Unknown command"). It then matches `edit\s+(\d+)` followed by any number of `m/`, `c/` and `g/` fields, converts the credits to a number and the grade to a `Grade`, and builds an `EditCommand`. A field the user did not give is `null`, meaning "keep the current value". A malformed command, a non-numeric credit or an unknown grade throws `EditException`.
+* `EditCommand#parse(String)` — claims any input that starts with `edit`. It then matches `edit\s+(\d+)` followed by any number of `m/`, `c/` and `g/` fields, reads each field, and builds an `EditCommand`. A field the user did not give is `null`, meaning "keep the current value". If the input starts with `edit` but is malformed, it throws `EditException` with the usage message instead of returning empty, because otherwise the user would see the misleading "Unknown command".
 * `Student#editModule(...)` — validates everything first, then applies the given fields through `Module#setModuleCode`, `setCredit` and `setGrade`, and returns the edited module.
 * `EditCommand#execute(Student)` — calls `editModule` and returns a `Response` with the message and the updated module.
 
 Given below is an example usage scenario.
 
-Step 1. The user runs `list` and sees `2. MA1521 | 4 MCs | Grade: B+`.
+Step 1. The user runs `list` and sees that module 2 is `MA1521`, worth 4 MCs, with grade B+.
 
 Step 2. The user executes `edit 2 c/5 g/A`. `EditCommand#parse` builds a command with index 2, no new code, credits 5 and grade A.
 
-Step 3. `execute` calls `Student#editModule(2, null, 5, A)`. All checks pass, so only the credits and grade are changed. The response shows `MA1521 | 5 MCs | Grade: A`.
+Step 3. `execute` calls `Student#editModule(2, null, 5, A)`. All checks pass, so only the credits and grade are changed. The response shows `MA1521` with 5 MCs and grade A.
 
 The following sequence diagram shows how the `edit 2 c/5 g/A` command is processed.
 
-```mermaid
-sequenceDiagram
-  participant CM as :CommandManager
-  participant EC as EditCommand
-  participant S as :Student
-  participant M as :Module
+<img src="images/EditSequence.png" alt="Sequence diagram of the edit 2 c/5 g/A command" width="700" />
 
-  CM->>EC: parse("edit 2 c/5 g/A")
-  Note over EC: throws EditException if the input is malformed
-  create participant E as :EditCommand
-  EC->>E: new EditCommand(2, null, 5, A)
-  EC-->>CM: Optional.of(command)
+The following sequence diagram shows what happens inside the `Domain` layer when `Student#editModule` runs successfully.
 
-  CM->>E: execute(student)
-  E->>S: editModule(2, null, 5, A)
-  alt all checks pass
-    S->>M: setCredit(5)
-    S->>M: setGrade(A)
-    S-->>E: edited module
-    E-->>CM: Response("Updated module 2:", module)
-  else a check fails
-    S-->>E: throws InvalidIndexException or EditException
-    E-->>CM: exception propagates up
-  end
-```
-
-Similarly, how `Student#editModule` works inside the `Domain` layer is shown below.
-
-```mermaid
-sequenceDiagram
-    participant E as :EditCommand
-    box LightCoral Domain
-        participant S as :Student
-        participant M as :Module
-    end
-
-    E->>+S: editModule(2, null, 5, A)
-    S->>S: getModule(2)
-    S->>S: validate the given fields
-    S->>+M: setCredit(5)
-    M-->>-S: ok
-    S->>+M: setGrade(A)
-    M-->>-S: ok
-    S-->>-E: edited module
-```
+<img src="images/EditDomainSequence.png" alt="Sequence diagram of Student#editModule inside the Domain layer" width="520" />
 
 The following activity diagram shows the checks that `editModule` makes before it changes anything.
 
-```mermaid
-flowchart TD
-  A([editModule<br/>called]) --> B{index<br/>in range?}
-  B -- no --> X1[throw<br/>InvalidIndex<br/>Exception]
-  B -- yes --> C{at least one<br/>field given?}
-  C -- no --> X2[throw<br/>EditException]
-  C -- yes --> D{credits<br/>positive?}
-  D -- no --> X2
-  D -- yes --> E{new code used<br/>by another<br/>module?}
-  E -- yes --> X2
-  E -- no --> F[apply the<br/>given fields]
-  F --> G([return<br/>edited module])
-```
+<img src="images/EditActivity.png" alt="Activity diagram of the checks made by editModule" width="340" />
 
 **Note:** All checks happen before any setter is called, so a rejected edit never leaves a module half-edited.
 
@@ -317,58 +259,32 @@ flowchart TD
 **Aspect: How the fields are updated**
 
 * **Alternative 1 (current choice):** Change the existing `Module` through setters, with `null` meaning "keep the current value".
-    * Pros: Other data on the module, such as the S/U flag and the semester, is kept automatically, and one command handles any combination of fields.
-    * Cons: `Module` becomes mutable, and the meaning of `null` must be documented.
+  * Pros: Other data on the module, such as the S/U flag and the semester, is kept automatically, and one command handles any combination of fields.
+  * Cons: `Module` becomes mutable, and the meaning of `null` must be documented.
 * **Alternative 2:** Create a new `Module` with the changed fields and replace the old one.
-    * Pros: `Module` can stay immutable.
-    * Cons: Every field must be copied across, so a new field such as the semester is easy to lose.
+  * Pros: `Module` can stay immutable.
+  * Cons: Every field must be copied across, so a new field such as the semester is easy to lose.
 
 **Aspect: When the input is validated**
 
 * **Alternative 1 (current choice):** Validate every field first, then apply them.
-    * Pros: A failed edit never leaves a half-edited module.
-    * Cons: The checks are separated from the code that applies each field.
+  * Pros: A failed edit never leaves a half-edited module.
+  * Cons: The checks are separated from the code that applies each field.
 * **Alternative 2:** Validate and apply each field one at a time.
-    * Pros: Each field's check sits next to its update.
-    * Cons: A later failure can leave earlier fields already changed.
+  * Pros: Each field's check sits next to its update.
+  * Cons: A later failure can leave earlier fields already changed.
 
-### [Proposed] Plan feature
+### Plan feature
 
-#### Proposed Implementation
+#### Implementation
 
-The proposed plan feature lets the user place a module in a year and semester. It is facilitated by the new `Semester` record, a new optional `semester` field in `Module`, `Student#planModule(int, Semester)` and `PlanCommand`.
+The plan feature lets the user place a module in a year and semester. It is facilitated by the `Semester` record, an optional `semester` field in `Module`, `Student#planModule(int, Semester)` and `PlanCommand`.
 
-```mermaid
-classDiagram
-  class Student {
-    +getModule(int) Module
-    +planModule(int, Semester) Module
-  }
-  class Module {
-    -String moduleCode
-    -int credit
-    -boolean isSuApplied
-    +getSemester() Semester
-    +setSemester(Semester)
-  }
-  class Semester {
-    <<record>>
-    +year() int
-    +term() int
-    +toString() String
-  }
-  class Grade {
-    <<enumeration>>
-  }
-
-  Student --> "0..*" Module : moduleList
-  Module --> "1" Grade : grade
-  Module --> "0..1" Semester : semester
-```
+<img src="images/PlanClassDiagram.png" alt="Class diagram of the plan feature" width="760" />
 
 * `Semester` — an immutable record of a year (1 to 4) and a semester number (1 or 2). Its constructor throws `PlanException` for out-of-range values, so an invalid `Semester` cannot exist. `toString` gives the form `Y2S1`.
-* `Module#semester` — `null` means the module is not planned yet. `Module#toString` appends ` | Y2S1` only when it is set, so planned modules show their semester in `list`, `add`, `edit` and `su` without any change to those commands.
-* `PlanCommand#parse(String)` — claims the input if it is `plan` or starts with `plan `. It matches `plan INDEX y/YEAR s/SEM`, converts the numbers (reporting non-numbers as a `PlanException`), and builds the `Semester`. A malformed command throws a `PlanException` with the usage message.
+* `Module#semester` — `null` means the module is not planned yet. `Module#toString` adds the semester (for example `Y2S1`) at the end of the module line only when it is set, so planned modules show their semester in `list`, `add`, `edit` and `su` without any change to those commands.
+* `PlanCommand#parse(String)` — claims any input that starts with `plan`. It matches `plan INDEX y/YEAR s/SEM`, converts the numbers (reporting non-numbers as a `PlanException`), and builds the `Semester`. A malformed command throws a `PlanException` with the usage message.
 * `Student#planModule(int, Semester)` — gets the module with `getModule` and sets its semester. If the module is already planned, it is simply moved to the new semester.
 
 Given below is an example usage scenario.
@@ -377,142 +293,81 @@ Step 1. The user has added `CS2113`, which is module 1 and is not planned.
 
 Step 2. The user executes `plan 1 y/2 s/1`. `PlanCommand#parse` creates `Semester(2, 1)`, then a `PlanCommand` for index 1.
 
-Step 3. `execute` calls `Student#planModule(1, semester)`, which sets the module's semester. The response is `Planned module 1 for Y2S1:` followed by the module line, which now ends in `| Y2S1`.
+Step 3. `execute` calls `Student#planModule(1, semester)`, which sets the module's semester. The response is `Planned module 1 for Y2S1:` followed by the module line, which now ends with the semester `Y2S1`.
 
 The following sequence diagram shows how the `plan 1 y/2 s/1` command goes through the `Dispatch` and `Domain` layers when it succeeds.
 
-```mermaid
-sequenceDiagram
-  participant Main as :ChatGpat
-  box LightBlue Dispatch
-    participant CM as :CommandManager
-  end
-  participant PC as PlanCommand
-  participant P as :PlanCommand
-  box LightCoral Domain
-    participant S as :Student
-    participant M as :Module
-  end
-
-  Main->>+CM: processQuery("plan 1 y/2 s/1")
-  CM->>+PC: parse("plan 1 y/2 s/1")
-  PC->>P: new PlanCommand(1, semester)
-  PC-->>-CM: Optional.of(command)
-  CM->>+P: execute(student)
-  P->>+S: planModule(1, semester)
-  S->>S: getModule(1)
-  S->>+M: setSemester(semester)
-  M-->>-S: ok
-  S-->>-P: module
-  P-->>-CM: Response
-  CM-->>-Main: Response
-```
+<img src="images/PlanSequence.png" alt="Sequence diagram of the plan 1 y/2 s/1 command" width="720" />
 
 **Note:** The `Semester` object is created inside `PlanCommand#parse` and is not shown, to keep the diagram simple. If the index is out of range, `getModule` throws `InvalidIndexException`. If the year or semester is invalid, the `Semester` constructor throws `PlanException`. In both cases nothing is changed.
 
-The following object diagram shows the effect of `plan 1 y/2 s/1` on the first module.
+The following object diagrams show the first module before and after `plan 1 y/2 s/1`.
 
-```mermaid
-flowchart LR
-    subgraph Before["Before plan 1 y/2 s/1"]
-        direction TB
-        S0[":Student"] --> M0["m1:Module<br/>CS2113<br/>semester = null"]
-    end
-    subgraph After["After plan 1 y/2 s/1"]
-        direction TB
-        S1[":Student"] --> M1["m1:Module<br/>CS2113"]
-        M1 --> Sem["s:Semester<br/>year = 2<br/>term = 1"]
-    end
-    Before --> After
-```
+<img src="images/PlanObjectBefore.png" alt="Object diagram before the plan command" width="200" />
+<img src="images/PlanObjectAfter.png" alt="Object diagram after the plan command" width="200" />
 
 #### Design considerations
 
 **Aspect: How a semester is represented**
 
 * **Alternative 1 (current choice):** A separate `Semester` record that validates itself.
-    * Pros: An invalid year or semester cannot exist, `equals` comes for free (useful for later filtering and summaries), and the `Y2S1` format is defined in one place.
-    * Cons: One more class.
+  * Pros: An invalid year or semester cannot exist, `equals` comes for free (used by `filter`), and the `Y2S1` format is defined in one place.
+  * Cons: One more class.
 * **Alternative 2:** Two plain `int` fields on `Module`.
-    * Pros: No new class.
-    * Cons: Validation and formatting are repeated wherever they are used, and the year can be set without the semester.
+  * Pros: No new class.
+  * Cons: Validation and formatting are repeated wherever they are used, and the year can be set without the semester.
 
 **Aspect: Representing "not planned"**
 
 * **Alternative 1 (current choice):** A `null` semester.
-    * Pros: Simple, existing modules and tests are unaffected, and saved data from before the feature can be loaded as unplanned.
-    * Cons: Callers must check for `null`.
+  * Pros: Simple, existing modules and tests are unaffected, and saved data from before the feature can be loaded as unplanned.
+  * Cons: Callers must check for `null`, or compare in a way that tolerates it (see the filter feature).
 * **Alternative 2:** `Optional<Semester>` or a special "unplanned" constant.
-    * Pros: Makes the unplanned case explicit.
-    * Cons: More code, and `Optional` is generally discouraged as a field type.
+  * Pros: Makes the unplanned case explicit.
+  * Cons: More code, and `Optional` is not meant to be used as a field type.
 
 **Aspect: Where the command lives**
 
 * **Alternative 1 (current choice):** A separate `plan` command.
-    * Pros: `edit` stays unchanged and the semester is set in one place.
-    * Cons: One more command to learn.
+  * Pros: `edit` stays unchanged and the semester is set in one place.
+  * Cons: One more command to learn.
 * **Alternative 2:** Add optional `y/` and `s/` fields to `edit`.
-    * Pros: Fewer commands.
-    * Cons: `edit`'s validation gets more tangled, and the year and semester only make sense together.
+  * Pros: Fewer commands.
+  * Cons: `edit`'s validation gets more tangled, and the year and semester only make sense together.
 
 ### Unplan feature
 
 #### Implementation
 
-The unplan feature removes a module's semester again. It is implemented by `UnplanCommand` and `Student#unplanModule(int)`, and reuses `Module#setSemester`.
+The unplan feature removes a module's semester again. It is facilitated by `UnplanCommand` and `Student#unplanModule(int)`, and reuses `Module#setSemester`.
 
-* `UnplanCommand#parse(String)` — matches `unplan\s+(\d+)` and returns an `UnplanCommand`. It does not clash with `PlanCommand`, because that parser only claims input that is `plan` or starts with `plan `.
+* `UnplanCommand#parse(String)` — matches `unplan\s+(\d+)` and returns an `UnplanCommand`. It does not clash with `PlanCommand`, because that parser only claims input that starts with `plan`.
 * `Student#unplanModule(int)` — gets the module with `getModule`. If its semester is `null`, it throws a `PlanException` saying the module is not planned. Otherwise it calls `setSemester(null)` and returns the module.
-* `UnplanCommand#execute(Student)` — returns `Response.forDataChange` with the message and module, requesting an automatic save.
+* `UnplanCommand#execute(Student)` — returns a `Response` with the message and the module.
 
 The following sequence diagram shows how `unplan 1` is processed.
 
-```mermaid
-sequenceDiagram
-  participant CM as :CommandManager
-  participant UC as UnplanCommand
-  participant S as :Student
-  participant M as :Module
-
-  CM->>UC: parse("unplan 1")
-  create participant U as :UnplanCommand
-  UC->>U: new UnplanCommand(1)
-  UC-->>CM: Optional.of(command)
-
-  CM->>U: execute(student)
-  U->>S: unplanModule(1)
-  S->>S: getModule(1)
-  alt module has a semester
-    S->>M: setSemester(null)
-    S-->>U: unplanned module
-    U-->>CM: Response("Removed module 1 from its semester plan:", module)
-  else module has no semester
-    S-->>U: throws PlanException
-    U-->>CM: exception propagates up
-  end
-```
-
-**Note:** If the index is out of range, `getModule` throws `InvalidIndexException`, and nothing is changed.
+<img src="images/UnplanSequence.png" alt="Sequence diagram of the unplan 1 command" width="700" />
 
 #### Design considerations
 
 **Aspect: Unplanning a module that has no semester**
 
 * **Alternative 1 (current choice):** Report an error.
-    * Pros: The user learns that the command had no effect, which usually means a wrong index.
-    * Cons: The command is not idempotent.
+  * Pros: The user learns that the command had no effect, which usually means a wrong index.
+  * Cons: The command is not idempotent.
 * **Alternative 2:** Succeed silently.
-    * Pros: Safe to repeat.
-    * Cons: A mistaken index goes unnoticed.
+  * Pros: Safe to repeat.
+  * Cons: A mistaken index goes unnoticed.
 
 **Aspect: How the user clears a semester**
 
 * **Alternative 1 (current choice):** A separate `unplan` command, paired with `plan` like `su` and `unsu`.
-    * Pros: Consistent with the existing command pairs, and easy to remember.
-    * Cons: One more command.
+  * Pros: Consistent with the existing command pairs, and easy to remember.
+  * Cons: One more command.
 * **Alternative 2:** A special value such as `plan INDEX y/0 s/0`.
-    * Pros: No new command.
-    * Cons: An unclear special case that makes `Semester` validation harder.
+  * Pros: No new command.
+  * Cons: An unclear special case that makes `Semester` validation harder.
     
 ### Target GPA feature
 
@@ -653,14 +508,6 @@ The following sequence diagram shows how `filter unplanned` is processed.
 
 The filter feature is covered by `FilterCommandTest` and `FilterUnplannedCommandTest`. They check parsing, the output for matching and empty results, that original indexes are kept, that invalid years and semesters throw `PlanException`, and that unplanned modules are never matched by a semester filter.
 
-### Index-based module commands
-
-`delete`, `edit`, `plan` and `unplan` all act on one module, chosen by its position in the list shown by `list` (`INDEX`, starting from 1). They share the same flow:
-
-1. `CommandManager` asks each `Parser<Command>` in turn. The `parse` method of the matching command checks the input with regular expressions and returns a `Command`, or an empty `Optional` if the input is not meant for it.
-2. `Command#execute(Student)` asks `Student` to change the data, then returns a `Response`. By design, commands do not print: `ChatInterface` prints every `Response`.
-3. `Student` looks the module up with `Student#getModule(int)`, which throws `InvalidIndexException` when the index is out of range. Expected errors such as this are `ChatGpatException`s: `ChatGpat#run` catches them and prints the message as a normal response. Any other unexpected exception is caught by a second `catch` block, which prints a generic error and logs the details. Either way the program keeps running, and the commands above validate their input before changing any data.
-
 ### SU feature
 
 #### Implementation
@@ -792,46 +639,198 @@ Escapes are `\|`, `\\`, `\n`, `\r`, `\t`, and `\s` (literal space). The reader t
 **Verification:** `StorageTest` covers a real save/load round trip, escaped text, legacy defaults, malformed lines and duplicates, missing/unreadable files, and failed saves. `ChatGpatTest` verifies that each of the seven mutating commands saves before its response, sessions restore saved state, viewing/rejected commands do not rewrite the file, and save errors reach the UI while commands continue working.
 
 ## Product scope
+
 ### Target user profile
 
-{Describe the target user profile}
+ChatGpat is for NUS Computing students who are strategic about their GPA, especially those working towards a GPA-dependent goal such as a student exchange (SEP) place or a scholarship. The target user:
+
+* has to keep track of many modules across several semesters
+* has a limited S/U quota and needs to decide which modules to use it on
+* wants to know what GPA to aim for in the remaining modules to reach a target
+* prefers typing commands to clicking through a spreadsheet or a web app
+* is comfortable using a command-line application
 
 ### Value proposition
 
-{Describe the value proposition: what problem does it solve?}
+Students working towards a GPA goal usually track their grades and S/U decisions in spreadsheets or in their heads. Updating a spreadsheet by hand is slow and easy to get wrong, and an S/U decision cannot be undone once it is made.
+
+ChatGpat keeps the student's modules, grades and semester plan in one place and answers with one typed command:
+
+* **What is my GPA now?** It calculates the GPA from the recorded grades, leaving out modules that are marked S/U.
+* **What if I S/U this module, or get a different grade?** `su`, `unsu` and `edit` change one module, so the student can compare the GPA before and after, and `quota` shows how much S/U quota is left.
+* **What do I need to reach my target?** The target GPA command shows the average grade needed in the remaining modules.
+* **What is my plan?** `plan` places a module in a year and semester, `unplan` removes it, and `filter` lists the modules of one semester or those not planned yet.
+
+This lets the student make informed S/U decisions and plan ahead which modules to put the most effort into.
 
 ## User Stories
 
 |Version| As a ... | I want to ... | So that I can ...|
-|--------|----------|---------------|------------------|
+|-------|----------|---------------|------------------|
 |v1.0|new user|see usage instructions|refer to them when I forget how to use the application|
-|v2.0|user|find a to-do item by name|locate a to-do without having to go through the entire list|
+|v1.0|student|add a module with its units and grade|have it counted correctly towards my GPA|
+|v1.0|student|view all my recorded modules|check everything I have entered and see each module's number|
+|v1.0|student|edit a module's code, units or grade|correct a mistake or try a different grade without re-entering the module|
+|v1.0|student|delete a module|stop a wrongly entered module from being counted in my calculations|
+|v1.0|student|see my current GPA|know where I stand|
+|v1.0|student|mark a module as S/U|see my GPA without that module before I commit to using the S/U|
+|v1.0|student|remove the S/U mark from a module|change my mind and have the module counted again|
+|v1.0|student|check how much of my S/U quota is left|avoid going over the limit|
+|v2.0|student|plan a module for a year and semester|organise which modules I will take in each semester|
+|v2.0|student|remove a module from its semester plan|update my plan when it changes|
+|v2.0|student|filter my modules by year and semester|see what I have planned for one semester|
+|v2.0|student|filter my modules that are not planned yet|find which modules still need a semester|
+|v2.0|student|see a summary of my modules by semester|compare my semesters at a glance|
+|v2.0|student with a GPA goal|set a target GPA|see the average grade I need in my remaining modules to reach it|
+|v2.0|student|have my modules saved when I exit and loaded when I return|avoid re-entering my records every time|
 
 ## Non-Functional Requirements
 
-{Give non-functional requirements}
+1. Should work on any mainstream OS (Windows, Linux, macOS) that has Java 25 or above installed.
+2. Should work offline, without an internet connection.
+3. A user with above-average typing speed for regular English text (not code) should be able to complete most tasks faster by typing commands than by using the mouse.
+4. Should respond to every command without noticeable delay when up to 100 modules are recorded.
+5. GPA calculations should follow the NUS grade-point scale.
+6. A command with invalid input should never crash the program or change the stored data. The user should get an error message that explains what went wrong.
+7. Should be usable by a student who has not used the application before, with the `help` command listing every available command.
 
 ## Glossary
 
-* *glossary item* - Definition
+* *GPA* - Grade point average: the average of the grade points of the recorded modules, weighted by their MCs. NUS calls this the CAP, but ChatGpat calls it GPA.
+* *Grade point* - The number that a letter grade is worth on the NUS scale. It is used in the GPA calculation.
+* *MC* - Modular Credit: the weight of a module. A module worth 4 MCs counts twice as much in the GPA as a module worth 2 MCs.
+* *S/U (SU)* - The NUS option to have a module graded Satisfactory/Unsatisfactory instead of with a letter grade, so that it does not count towards the GPA. In ChatGpat, applying SU to a module only leaves it out of the GPA calculation, so that the student can see the effect. It does not change anything in the real NUS records.
+* *SU quota* - The number of MCs of modules a student may S/U. ChatGpat shows the remaining quota after each `su` and `unsu`.
+* *Index* - The position of a module in the list shown by `list`, starting from 1. Commands such as `edit`, `delete`, `su`, `unsu`, `plan` and `unplan` use it to pick a module.
+* *Semester notation* - A semester is written as `Y2S1`, meaning year 2, semester 1. Years go from 1 to 4 and semesters from 1 to 2.
+* *Planned module* - A module that has been placed in a year and semester with `plan`. A module that has not is an *unplanned module*.
+* *Target GPA* - The GPA that the student wants to reach. The `target` command shows the average grade needed in the remaining MCs to reach it.
+* *SEP* - The NUS Student Exchange Programme.
+* *CLI* - Command-line interface: an application that the user controls by typing commands.
+* *Mainstream OS* - Windows, Linux, Unix and macOS.
 
 ## Instructions for manual testing
 
-1. Filtering by semester
-  1. Prerequisites: plan module 1 with `plan 1 y/2 s/1` and module 2 with `plan 2 y/3 s/1`.
-  1. Test case: `filter y/2 s/1`<br>
-     Expected: `Modules in Y2S1:` followed by module 1 with its original number. Module 2 is not shown.
-  1. Test case: `filter y/3 s/2`<br>
-     Expected: `No modules found in Y3S2.`
-  1. Test case: `filter y/9 s/1`<br>
-     Expected: An error saying the year is invalid.
+Given below are instructions to test ChatGpat manually.
 
-1. Filtering unplanned modules
-  1. Prerequisites: module 1 and module 2 are planned, module 3 is not.
-  1. Test case: `filter unplanned`<br>
-     Expected: `Modules not planned for any semester:` followed by module 3 with its original number.
-  1. Test case: plan module 3, then `filter unplanned`<br>
-     Expected: `All modules are planned.`
-  1. Test case: delete every module, then `filter unplanned`<br>
-     Expected: `No modules recorded yet.`
+**Note:** These instructions only provide a starting point for testers. Testers are expected to do more exploratory testing. All tests assume you start ChatGpat as described in the User Guide.
 
+### Launch and exit
+
+#### Showing the help message
+
+1. Test case: `help`<br>Expected: `Available commands:` followed by every command with its format: `help`, `add`, `list`, `edit`, `delete`, `gpa`, `summary`, `su`, `unsu`, `quota`, `target`, `plan`, `unplan`, `filter` and `exit`.
+
+#### Exiting the program
+
+1. Test case: `exit`<br>Expected: `Goodbye!` is shown and the program ends.
+
+#### Unknown commands
+
+1. Test case: `hello`<br>Expected: An error saying the command is not known. The program keeps running.
+
+### Adding and listing modules
+
+#### Adding modules
+
+Prerequisites: no modules are recorded. `list` shows `No modules recorded yet.`
+
+1. Test case: `add m/CS2113 c/4 g/A-`<br>Expected: `New module added: CS2113 (4 MCs, Grade: A-)` and `You now have 1 module recorded.`
+1. Test case: `add m/MA1521 c/4 g/B+`, then `add m/CS2040 c/4 g/A`<br>Expected: The module is added each time, and the count goes to 2 and then 3.
+1. Test case: `add m/CS2113 c/4 g/A-` again<br>Expected: An error saying the module is already recorded. The count does not change.
+1. Test case: `add CS2113`<br>Expected: An error. Nothing is added.
+
+#### Listing modules
+
+Prerequisites: the three modules above are recorded.
+
+1. Test case: `list`<br>Expected: `Here are your recorded modules:` followed by three modules, numbered 1 to 3 in the order they were added, each with its MCs and grade.
+
+### Editing and deleting modules
+
+#### Editing a module
+
+Prerequisites: the three modules above are recorded.
+
+1. Test case: `edit 2 c/5 g/A`<br>Expected: `Updated module 2:` followed by MA1521 with 5 MCs and grade A. The code is unchanged.
+1. Test case: `edit 2 c/4 g/B+`<br>Expected: Module 2 is back to 4 MCs and grade B+. Run this to restore the data for the later tests.
+1. Test case: `edit 2`<br>Expected: An error showing the usage of `edit`. Module 2 is unchanged.
+1. Test case: `edit 99 g/A`<br>Expected: An error about an invalid index. Nothing is changed.
+1. Test case: `edit 1 m/MA1521`<br>Expected: An error, because another module already uses that code. Module 1 is unchanged.
+
+#### Deleting a module
+
+Prerequisites: the three modules above are recorded.
+
+1. Test case: `delete 3`<br>Expected: `Removed module 3:` followed by CS2040. `list` now shows two modules.
+1. Test case: `add m/CS2040 c/4 g/A`<br>Expected: CS2040 is back as module 3. Run this to restore the data for the later tests.
+1. Test case: `delete 99`<br>Expected: An error about an invalid index. No module is removed.
+
+### GPA and S/U
+
+#### Showing the GPA
+
+Prerequisites: CS2113 (4 MCs, A-), MA1521 (4 MCs, B+) and CS2040 (4 MCs, A) are recorded as modules 1 to 3.
+
+1. Test case: `gpa`<br>Expected: `Your GPA is 4.50`, which is the weighted average of 4.5, 4.0 and 5.0 on the NUS scale.
+
+#### Applying and removing S/U
+
+Prerequisites: the same three modules, none marked S/U.
+
+1. Test case: `su 2`<br>Expected: `Applied SU on module 2:` followed by the module and `Remaining SU quota:` with a number of MCs.
+1. Test case: `gpa`<br>Expected: `Your GPA is 4.75`. Module 2 is no longer counted.
+1. Test case: `quota`<br>Expected: `Modules SU-ed so far:` followed by module 2.
+1. Test case: `su 2` again<br>Expected: An error, because the module already has SU applied. Nothing is changed.
+1. Test case: `unsu 2`<br>Expected: `Removed SU on module 2:` followed by the module and the remaining SU quota, which is back to what it was before `su 2`. `gpa` again shows `Your GPA is 4.50`.
+1. Test case: `su 99`<br>Expected: An error about an invalid index. Nothing is changed.
+
+#### Checking the quota when nothing is SU-ed
+
+Prerequisites: no module is marked S/U.
+
+1. Test case: `quota`<br>Expected: `No modules have been SU-ed yet.`
+
+### Target GPA and summary
+
+#### Calculating the average grade needed
+
+Prerequisites: the same three modules, none marked S/U.
+
+1. Test case: `target 4.5 r/12`<br>Expected: A message stating the average grade needed in the remaining 12 MCs to reach a GPA of 4.5, or that the target cannot be reached.
+1. Test case: `target 4.5`<br>Expected: An error, because the remaining MCs (`r/`) are missing. No result is shown.
+
+#### Showing the summary
+
+Prerequisites: the same three modules, none planned.
+
+1. Test case: `summary`<br>Expected: The module count, MCs and GPA for each semester that has modules, and the totals for the unplanned modules. All three modules are counted as unplanned.
+1. Test case: plan two of them with the commands in the next section, then `summary`<br>Expected: The planned modules are counted under their semesters. Only the rest are counted as unplanned.
+
+### Planning, unplanning and filtering
+
+#### Planning and unplanning a module
+
+Prerequisites: at least three modules are recorded, and `list` shows no semester on any of them.
+
+1. Test case: `plan 1 y/2 s/1`<br>Expected: The response starts with `Planned module 1 for Y2S1:`, and `list` now shows `Y2S1` on module 1.
+1. Test case: `plan 1 y/5 s/1`<br>Expected: An error saying the year is invalid. Module 1 is unchanged.
+1. Test case: `plan 99 y/1 s/1`<br>Expected: An error about an invalid index. Nothing is changed.
+1. Test case: `unplan 1`<br>Expected: The response starts with `Removed module 1 from its semester plan:`, and `list` no longer shows a semester on module 1.
+1. Test case: `unplan 1` again<br>Expected: An error saying the module is not planned.
+
+#### Filtering by semester
+
+Prerequisites: plan module 1 with `plan 1 y/2 s/1` and module 2 with `plan 2 y/3 s/1`.
+
+1. Test case: `filter y/2 s/1`<br>Expected: `Modules in Y2S1:` followed by module 1 with its original number. Module 2 is not shown.
+1. Test case: `filter y/3 s/2`<br>Expected: `No modules found in Y3S2.`
+1. Test case: `filter y/9 s/1`<br>Expected: An error saying the year is invalid.
+
+#### Filtering unplanned modules
+
+Prerequisites: module 1 and module 2 are planned, module 3 is not.
+
+1. Test case: `filter unplanned`<br>Expected: `Modules not planned for any semester:` followed by module 3 with its original number.
+1. Test case: plan module 3, then `filter unplanned`<br>Expected: `All modules are planned.`
+1. Test case: delete every module, then `filter unplanned`<br>Expected: `No modules recorded yet.`

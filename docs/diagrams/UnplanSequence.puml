@@ -1,0 +1,34 @@
+@startuml
+!include style.puml
+
+participant ":CommandManager" as CM
+participant "<<class>>\nUnplanCommand" as UC
+participant ":UnplanCommand" as U
+participant ":Student" as S
+participant ":Module" as M
+
+[-> CM ++ : processQuery("unplan 1")
+CM -> UC ++ : parse("unplan 1")
+create U
+UC -> U : UnplanCommand(1)
+activate U
+U --> UC
+deactivate U
+UC --> CM -- : Optional.of(command)
+
+CM -> U ++ : execute(student)
+U -> S ++ : unplanModule(1)
+S -> S ++ : getModule(1)
+S --> S -- : module
+alt module has a semester
+    S -> M ++ : setSemester(null)
+    M --> S --
+    S --> U : unplanned module
+else module has no semester
+    S --> U : throws PlanException
+end
+deactivate S
+U --> CM -- : Response, or the exception\npropagates to ChatGpat
+destroy U
+[<-- CM -- : Response
+@enduml

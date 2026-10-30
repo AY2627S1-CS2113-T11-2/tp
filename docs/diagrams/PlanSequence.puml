@@ -1,0 +1,34 @@
+@startuml
+!include style.puml
+
+participant ":ChatGpat" as Main
+box "Dispatch" #E3F1FB
+    participant ":CommandManager" as CM
+    participant "<<class>>\nPlanCommand" as PC
+    participant ":PlanCommand" as P
+end box
+box "Domain" #FBE9E7
+    participant ":Student" as S
+    participant ":Module" as M
+end box
+
+Main -> CM ++ : processQuery("plan 1 y/2 s/1")
+CM -> PC ++ : parse("plan 1 y/2 s/1")
+create P
+PC -> P : PlanCommand(1, semester)
+activate P
+P --> PC
+deactivate P
+PC --> CM -- : Optional.of(command)
+
+CM -> P ++ : execute(student)
+P -> S ++ : planModule(1, semester)
+S -> S ++ : getModule(1)
+S --> S -- : module
+S -> M ++ : setSemester(semester)
+M --> S --
+S --> P -- : module
+P --> CM -- : Response
+destroy P
+CM --> Main -- : Response
+@enduml

@@ -1,0 +1,26 @@
+@startuml
+!include style.puml
+
+participant ":CommandManager" as CM
+participant "<<class>>\nDeleteCommand" as DC
+participant ":DeleteCommand" as D
+participant ":Student" as S
+
+[-> CM ++ : processQuery("delete 2")
+CM -> DC ++ : parse("delete 2")
+create D
+DC -> D : DeleteCommand(2)
+activate D
+D --> DC
+deactivate D
+DC --> CM -- : Optional.of(command)
+
+CM -> D ++ : execute(student)
+D -> S ++ : deleteModule(2)
+S -> S ++ : getModule(2)
+S --> S -- : module
+S --> D -- : removed module
+D --> CM -- : Response
+destroy D
+[<-- CM -- : Response
+@enduml
