@@ -1,0 +1,36 @@
+@startuml
+!include style.puml
+
+participant ":CommandManager" as CM
+participant "<<class>>\nGpaCommand" as GC
+participant ":GpaCommand" as G
+participant ":Student" as S
+
+[-> CM ++ : processQuery("gpa")
+CM -> GC ++ : parse("gpa")
+create G
+GC -> G : GpaCommand()
+activate G
+G --> GC
+deactivate G
+GC --> CM -- : Optional.of(command)
+
+CM -> G ++ : execute(student)
+G -> S ++ : calculateGpa()
+S -> S ++ : calculateGpaData(moduleList)
+loop for each module in moduleList
+    opt module is not SU-ed and its grade affects GPA
+        S -> S : add grade point x credits\nand credits to the totals
+    end
+end
+S --> S -- : GpaData
+alt total credits is 0
+    S --> G : throws GpaException
+    note over G, CM : Exception propagates;\nChatGpat prints the message
+else
+    S --> G -- : gpa
+    G --> CM -- : Response("Your GPA is 4.50")
+end
+destroy G
+[<-- CM -- : Response
+@enduml
