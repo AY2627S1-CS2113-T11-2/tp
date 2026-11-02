@@ -111,7 +111,7 @@ public class StorageTest {
         Path file = temporaryDirectory.resolve("modules.txt");
         List<String> invalidLines = List.of(
                 "CS1000 | 4", " | 4 | A", "CS 1000 | 4 | A", "CS1000 | nope | A",
-                "CS1000 | 0 | A", "CS1000 | -1 | A", "CS1000 | 999999999999 | A",
+                "CS1000 | 0 | A", "CS1000 | -1 | A", "CS1000 | 41 | A", "CS1000 | 999999999999 | A",
                 "CS1000 | 4 | unknown", "CS1000 | 4 | A | true", "CS1000 | 4 | A | 0 | Y5S1",
                 "CS1000 | 4 | A | 0 | Y1S3", "CS1000 | 4 | A | 0 | 2/1",
                 "CS1000 | 4 | A | 0 | - | name | desc | extra", "CS1000 | 4 | A | 0 | - | bad\\q",

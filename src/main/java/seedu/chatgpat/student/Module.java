@@ -4,6 +4,13 @@ package seedu.chatgpat.student;
  * Stores a module's details, original grade, SU status and optional semester plan.
  */
 public class Module {
+    /** The fewest MCs a module can be worth. */
+    public static final int MIN_CREDITS = 1;
+    /** The most MCs a module can be worth. The limit keeps GPA totals realistic and prevents overflow. */
+    public static final int MAX_CREDITS = 40;
+    /** The message shown when a number of MCs is outside the allowed range. */
+    public static final String MESSAGE_INVALID_CREDITS =
+            String.format("Credits must be a whole number from %d to %d.", MIN_CREDITS, MAX_CREDITS);
 
     private String moduleCode;
     private String moduleName;
@@ -39,6 +46,16 @@ public class Module {
 
     public int getCredit() {
         return credit;
+    }
+
+    /**
+     * Returns whether the given number of MCs is allowed for a module.
+     *
+     * @param credit The number of MCs to check.
+     * @return True if it is from {@link #MIN_CREDITS} to {@link #MAX_CREDITS}.
+     */
+    public static boolean isValidCredit(int credit) {
+        return credit >= MIN_CREDITS && credit <= MAX_CREDITS;
     }
 
     public Grade getGrade() {

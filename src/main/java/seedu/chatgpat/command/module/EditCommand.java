@@ -83,7 +83,7 @@ public class EditCommand extends Command {
         try {
             return Integer.parseInt(value);
         } catch (NumberFormatException e) {
-            throw new EditException("Credits must be a positive integer.");
+            throw new EditException(Module.MESSAGE_INVALID_CREDITS);
         }
     }
 

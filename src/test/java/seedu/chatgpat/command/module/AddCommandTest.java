@@ -93,6 +93,16 @@ public class AddCommandTest {
     }
 
     /**
+     * Tests that the allowed range of credits is from 1 to 40.
+     */
+    @Test
+    public void parse_creditsAtAndAboveLimit_acceptsLimitAndRejectsAbove() {
+        assertTrue(AddCommand.parse("add m/CS2113 c/40 g/A").isPresent());
+        assertThrows(InvalidAddException.class,
+                () -> AddCommand.parse("add m/CS2113 c/41 g/A"));
+    }
+
+    /**
      * Tests that an invalid credit number is rejected.
      */
     @Test

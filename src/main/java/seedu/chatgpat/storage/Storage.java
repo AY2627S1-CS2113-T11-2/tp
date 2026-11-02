@@ -148,10 +148,10 @@ public class Storage {
         try {
             credits = Integer.parseInt(fields.get(1));
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("MCs must be a positive integer.");
+            throw new IllegalArgumentException(Module.MESSAGE_INVALID_CREDITS);
         }
-        if (credits <= 0) {
-            throw new IllegalArgumentException("MCs must be a positive integer.");
+        if (!Module.isValidCredit(credits)) {
+            throw new IllegalArgumentException(Module.MESSAGE_INVALID_CREDITS);
         }
         Grade grade = Grade.fromLabel(fields.get(2));
         String su = optionalField(fields, 3, "0");

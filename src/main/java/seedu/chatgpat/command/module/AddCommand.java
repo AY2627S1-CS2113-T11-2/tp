@@ -68,24 +68,23 @@ public class AddCommand extends Command {
     }
 
     /**
-     * Parses the credits string into a positive integer.
+     * Parses the credits string into a whole number within the allowed range.
      *
      * @param  creditsStr The raw credits field.
      * @return            The parsed credits.
      * @throws InvalidAddException
-     *         If the string is not an integer or is not positive.
+     *         If the string is not a whole number, or is outside the allowed range.
      */
     private static int parseCredits(String creditsStr) {
+        String message = Module.MESSAGE_INVALID_CREDITS + " Got: " + creditsStr;
         int credits;
         try {
             credits = Integer.parseInt(creditsStr);
         } catch (NumberFormatException e) {
-            throw new InvalidAddException(
-                    "Credits must be a positive integer, got: " + creditsStr);
+            throw new InvalidAddException(message);
         }
-        if (credits <= 0) {
-            throw new InvalidAddException(
-                    "Credits must be a positive integer, got: " + creditsStr);
+        if (!Module.isValidCredit(credits)) {
+            throw new InvalidAddException(message);
         }
         return credits;
     }

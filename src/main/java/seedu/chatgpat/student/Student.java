@@ -316,8 +316,8 @@ public class Student {
         if (newCode == null && newCredit == null && newGrade == null) {
             throw new EditException("Provide at least one field to edit.");
         }
-        if (newCredit != null && newCredit <= 0) {
-            throw new EditException("Credits must be a positive integer.");
+        if (newCredit != null && !Module.isValidCredit(newCredit)) {
+            throw new EditException(Module.MESSAGE_INVALID_CREDITS);
         }
         if (newCode != null && !newCode.equalsIgnoreCase(module.getModuleCode())
                 && isModuleExists(moduleList, newCode)) {
@@ -364,14 +364,15 @@ public class Student {
         int currentMCs = data.totalCredits();
         double currentPoints = data.totalGradePoints();
         String currentGpaDataMessage = String.format("Current GPA: %.2f over %d MCs.%n", calculateGpa(), currentMCs);
-        double averageGradePointsRequired = (target * (currentMCs + remainingMCs) - currentPoints) / remainingMCs;
+        // The MCs are added as doubles, so a very large number of remaining MCs cannot overflow an int.
+        double totalMCs = (double) currentMCs + remainingMCs;
+        double averageGradePointsRequired = (target * totalMCs - currentPoints) / remainingMCs;
         if (averageGradePointsRequired <= 0.0) {
             return currentGpaDataMessage +
                     "You already secured your target GPA!";
         }
         if (averageGradePointsRequired > MAX_GRADE_POINT) {
-            double bestAchievableGPA = (currentPoints + MAX_GRADE_POINT * remainingMCs)
-                    / (currentMCs + remainingMCs);
+            double bestAchievableGPA = (currentPoints + MAX_GRADE_POINT * remainingMCs) / totalMCs;
             return currentGpaDataMessage +
                     String.format("Your target GPA is unreachable! The best you can reach is %.2f.", bestAchievableGPA);
         }

@@ -60,6 +60,12 @@ public class EditModuleTest {
     }
 
     @Test
+    public void editModule_creditsAboveLimit_throwsAndKeepsModule() {
+        assertThrows(EditException.class, () -> student.editModule(1, null, Module.MAX_CREDITS + 1, null));
+        assertEquals("CS2113 | 4 MCs | Grade: A-", student.getModule(1).toString());
+    }
+
+    @Test
     public void editModule_duplicateCode_throwsAndKeepsModule() {
         assertThrows(EditException.class, () -> student.editModule(1, "MA1521", null, null));
         assertEquals("CS2113 | 4 MCs | Grade: A-", student.getModule(1).toString());
