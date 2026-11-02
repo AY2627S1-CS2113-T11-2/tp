@@ -113,6 +113,7 @@ public class AddCommand extends Command {
      */
     @Override
     public Response execute(Student student) {
+        assert Module.isValidCredit(credits) : "parse only creates commands with valid credits";
         Module module = new Module(moduleCode, moduleCode, "", credits, grade, false);
         student.addModule(module);
         int count = student.getModuleCount();

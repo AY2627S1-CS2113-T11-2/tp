@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 
 import seedu.chatgpat.command.Response;
 import seedu.chatgpat.exception.EditException;
+import seedu.chatgpat.exception.InvalidFormatException;
 import seedu.chatgpat.student.Grade;
 import seedu.chatgpat.student.Module;
 import seedu.chatgpat.student.Student;
@@ -30,6 +31,11 @@ public class EditCommandTest {
     @Test
     public void parse_missingIndex_throwsEditException() {
         assertThrows(EditException.class, () -> EditCommand.parse("edit"));
+    }
+
+    @Test
+    public void parse_indexTooLarge_throwsInvalidFormatException() {
+        assertThrows(InvalidFormatException.class, () -> EditCommand.parse("edit 99999999999 g/A"));
     }
 
     @Test

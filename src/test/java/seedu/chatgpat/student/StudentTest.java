@@ -56,73 +56,73 @@ public class StudentTest {
 
 
     @Test
-    public void targetGPA_normalCase_correctOutput() {
+    public void getTargetGpaMessage_normalCase_correctOutput() {
         String expected = String.format("Current GPA: 4.25 over 8 MCs.%n") +
                 "To reach 4.5 after 8 more MCs, "
                 + "you need an average grade point of 4.75 (About A)";
 
-        String actual = student.targetGPA(4.5, 8);
+        String actual = student.getTargetGpaMessage(4.5, 8);
 
         assertEquals(expected, actual);
     }
 
     @Test
-    public void targetGPA_alreadySecured_correctOutput() {
+    public void getTargetGpaMessage_alreadySecured_correctOutput() {
         String expected = String.format("Current GPA: 4.25 over 8 MCs.%n") +
                 "You already secured your target GPA!";
 
-        String actual = student.targetGPA(2.0, 8);
+        String actual = student.getTargetGpaMessage(2.0, 8);
 
         assertEquals(expected, actual);
     }
 
     @Test
-    public void targetGPA_unreachable_correctOutput() {
+    public void getTargetGpaMessage_unreachable_correctOutput() {
         String expected = String.format("Current GPA: 4.25 over 8 MCs.%n") +
                 "Your target GPA is unreachable! "
                 + "The best you can reach is 4.50.";
 
-        String actual = student.targetGPA(5.0, 4);
+        String actual = student.getTargetGpaMessage(5.0, 4);
 
         assertEquals(expected, actual);
     }
 
     @Test
-    public void targetGPA_veryLargeRemainingMcs_doesNotOverflow() {
-        String actual = student.targetGPA(4.0, Integer.MAX_VALUE);
+    public void getTargetGpaMessage_veryLargeRemainingMcs_doesNotOverflow() {
+        String actual = student.getTargetGpaMessage(4.0, Integer.MAX_VALUE);
 
         assertTrue(actual.contains("you need an average grade point of 4.00"));
     }
 
     @Test
-    public void targetGPA_targetAboveFive_throwsException() {
+    public void getTargetGpaMessage_targetAboveFive_throwsException() {
         assertThrows(TargetException.class,
-                () -> student.targetGPA(5.5, 8));
+                () -> student.getTargetGpaMessage(5.5, 8));
     }
 
     @Test
-    public void targetGPA_negativeTarget_throwsException() {
+    public void getTargetGpaMessage_negativeTarget_throwsException() {
         assertThrows(TargetException.class,
-                () -> student.targetGPA(-1.0, 8));
+                () -> student.getTargetGpaMessage(-1.0, 8));
     }
 
     @Test
-    public void targetGPA_zeroRemainingMcs_throwsException() {
+    public void getTargetGpaMessage_zeroRemainingMcs_throwsException() {
         assertThrows(TargetException.class,
-                () -> student.targetGPA(4.5, 0));
+                () -> student.getTargetGpaMessage(4.5, 0));
     }
 
     @Test
-    public void targetGPA_negativeRemainingMcs_throwsException() {
+    public void getTargetGpaMessage_negativeRemainingMcs_throwsException() {
         assertThrows(TargetException.class,
-                () -> student.targetGPA(4.5, -4));
+                () -> student.getTargetGpaMessage(4.5, -4));
     }
     @Test
-    public void targetGPA_noGradedModules_throwsGpaException() {
+    public void getTargetGpaMessage_noGradedModules_throwsGpaException() {
         Student emptyStudent = new Student();
 
         assertThrows(GpaException.class,
-                () -> emptyStudent.targetGPA(4.5, 8));
+                () -> emptyStudent.getTargetGpaMessage(4.5, 8));
     }
 
     @Test

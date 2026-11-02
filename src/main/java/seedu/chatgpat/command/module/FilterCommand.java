@@ -71,6 +71,7 @@ public class FilterCommand extends Command {
      */
     static String formatResult(String header, String emptyMessage,
                                List<Integer> indexes, Student student) {
+        assert indexes != null : "Student always returns a list of indexes, even if it is empty";
         if (indexes.isEmpty()) {
             return emptyMessage;
         }

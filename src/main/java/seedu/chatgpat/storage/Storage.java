@@ -68,22 +68,7 @@ public class Storage {
             int lineNumber = 0;
             while ((line = reader.readLine()) != null) {
                 lineNumber++;
-                // Some text editors include a UTF-8 byte order mark at the start of the file.
-                if (lineNumber == 1 && line.startsWith("\uFEFF")) {
-                    line = line.substring(1);
-                }
-                if (line.isBlank()) {
-                    continue;
-                }
-                try {
-                    Module module = parseModule(line);
-                    if (!codes.add(module.getModuleCode())) {
-                        throw new IllegalArgumentException("Duplicate module code: " + module.getModuleCode());
-                    }
-                    modules.add(module);
-                } catch (IllegalArgumentException e) {
-                    warnings.add("Skipped line " + lineNumber + " in " + file + ": " + e.getMessage());
-                }
+                loadLine(line, lineNumber, codes, modules, warnings);
             }
         } catch (NoSuchFileException e) {
             // First run: the directory and file will be created by save().
@@ -91,6 +76,34 @@ public class Storage {
             warnings.add("Could not load modules from " + file + ": " + e.getMessage());
         }
         return new LoadResult(modules, warnings);
+    }
+
+    /**
+     * Loads one line of the data file. A valid record with a new code is added to {@code modules};
+     * a malformed or duplicate record is skipped with a warning that names the line.
+     *
+     * @param line       The line as read from the file.
+     * @param lineNumber The 1-based line number, used in warnings.
+     * @param codes      The codes loaded so far, compared without letter case.
+     * @param modules    The modules loaded so far.
+     * @param warnings   The warnings collected so far.
+     */
+    private void loadLine(String line, int lineNumber, Set<String> codes,
+                          List<Module> modules, List<String> warnings) {
+        // Some text editors include a UTF-8 byte order mark at the start of the file.
+        String record = lineNumber == 1 && line.startsWith("\uFEFF") ? line.substring(1) : line;
+        if (record.isBlank()) {
+            return;
+        }
+        try {
+            Module module = parseModule(record);
+            if (!codes.add(module.getModuleCode())) {
+                throw new IllegalArgumentException("Duplicate module code: " + module.getModuleCode());
+            }
+            modules.add(module);
+        } catch (IllegalArgumentException e) {
+            warnings.add("Skipped line " + lineNumber + " in " + file + ": " + e.getMessage());
+        }
     }
 
     /**

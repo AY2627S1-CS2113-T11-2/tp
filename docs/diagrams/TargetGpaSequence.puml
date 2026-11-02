@@ -16,7 +16,7 @@ TC --> CM : Optional.of(command)
 deactivate TC
 CM -> T : execute(student)
 activate T
-T -> S : targetGPA(4.50, 8)
+T -> S : getTargetGpaMessage(4.50, 8)
 activate S
 S -> S : validate target and remaining MCs
 S -> S : calculateGpaData(moduleList)

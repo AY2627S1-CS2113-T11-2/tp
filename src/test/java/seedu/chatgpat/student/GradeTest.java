@@ -19,55 +19,55 @@ public class GradeTest {
     public void gradeConstants_correctProperties() {
         assertEquals("A+", Grade.A_PLUS.getLabel());
         assertEquals(5.0, Grade.A_PLUS.getGradePoint(), 0.0);
-        assertTrue(Grade.A_PLUS.isAffectsGpa());
+        assertTrue(Grade.A_PLUS.affectsGpa());
 
         assertEquals("A", Grade.A.getLabel());
         assertEquals(5.0, Grade.A.getGradePoint(), 0.0);
-        assertTrue(Grade.A.isAffectsGpa());
+        assertTrue(Grade.A.affectsGpa());
 
         assertEquals("A-", Grade.A_MINUS.getLabel());
         assertEquals(4.5, Grade.A_MINUS.getGradePoint(), 0.0);
-        assertTrue(Grade.A_MINUS.isAffectsGpa());
+        assertTrue(Grade.A_MINUS.affectsGpa());
 
         assertEquals("B+", Grade.B_PLUS.getLabel());
         assertEquals(4.0, Grade.B_PLUS.getGradePoint(), 0.0);
-        assertTrue(Grade.B_PLUS.isAffectsGpa());
+        assertTrue(Grade.B_PLUS.affectsGpa());
 
         assertEquals("B", Grade.B.getLabel());
         assertEquals(3.5, Grade.B.getGradePoint(), 0.0);
-        assertTrue(Grade.B.isAffectsGpa());
+        assertTrue(Grade.B.affectsGpa());
 
         assertEquals("B-", Grade.B_MINUS.getLabel());
         assertEquals(3.0, Grade.B_MINUS.getGradePoint(), 0.0);
-        assertTrue(Grade.B_MINUS.isAffectsGpa());
+        assertTrue(Grade.B_MINUS.affectsGpa());
 
         assertEquals("C+", Grade.C_PLUS.getLabel());
         assertEquals(2.5, Grade.C_PLUS.getGradePoint(), 0.0);
-        assertTrue(Grade.C_PLUS.isAffectsGpa());
+        assertTrue(Grade.C_PLUS.affectsGpa());
 
         assertEquals("C", Grade.C.getLabel());
         assertEquals(2.0, Grade.C.getGradePoint(), 0.0);
-        assertTrue(Grade.C.isAffectsGpa());
+        assertTrue(Grade.C.affectsGpa());
 
         assertEquals("D+", Grade.D_PLUS.getLabel());
         assertEquals(1.5, Grade.D_PLUS.getGradePoint(), 0.0);
-        assertTrue(Grade.D_PLUS.isAffectsGpa());
+        assertTrue(Grade.D_PLUS.affectsGpa());
 
         assertEquals("D", Grade.D.getLabel());
         assertEquals(1.0, Grade.D.getGradePoint(), 0.0);
-        assertTrue(Grade.D.isAffectsGpa());
+        assertTrue(Grade.D.affectsGpa());
 
         assertEquals("F", Grade.F.getLabel());
         assertEquals(0.0, Grade.F.getGradePoint(), 0.0);
-        assertTrue(Grade.F.isAffectsGpa());
+        assertTrue(Grade.F.affectsGpa());
 
         assertEquals("CS", Grade.CS.getLabel());
         assertEquals(0.0, Grade.CS.getGradePoint(), 0.0);
-        assertFalse(Grade.CS.isAffectsGpa());
+        assertFalse(Grade.CS.affectsGpa());
 
         assertEquals("CU", Grade.CU.getLabel());
         assertEquals(0.0, Grade.CU.getGradePoint(), 0.0);
-        assertFalse(Grade.CU.isAffectsGpa());
+        assertFalse(Grade.CU.affectsGpa());
     }
 
     /**

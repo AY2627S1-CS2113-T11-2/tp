@@ -2,6 +2,7 @@ package seedu.chatgpat.student;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -63,6 +64,27 @@ public class EditModuleTest {
     public void editModule_creditsAboveLimit_throwsAndKeepsModule() {
         assertThrows(EditException.class, () -> student.editModule(1, null, Module.MAX_CREDITS + 1, null));
         assertEquals("CS2113 | 4 MCs | Grade: A-", student.getModule(1).toString());
+    }
+
+    @Test
+    public void editModule_suModuleCreditsWithinQuota_updatesCredits() {
+        student.applySu(1);
+
+        Module edited = student.editModule(1, null, 32, null);
+
+        assertEquals(32, edited.getCredit());
+        assertEquals(0, student.getRemainingSuQuota());
+    }
+
+    @Test
+    public void editModule_suModuleCreditsAboveQuota_throwsAndKeepsModule() {
+        student.applySu(1);
+
+        EditException exception = assertThrows(EditException.class, () -> student.editModule(1, null, 33, null));
+
+        assertTrue(exception.getMessage().contains("only 32 MCs of S/U quota are available"));
+        assertEquals("CS2113 | 4 MCs | Grade: A- [S/U]", student.getModule(1).toString());
+        assertEquals(28, student.getRemainingSuQuota());
     }
 
     @Test

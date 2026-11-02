@@ -147,7 +147,7 @@ The add feature stores a new module in the student's record. It is facilitated b
 
 * `AddCommand#parse(String)` — returns `Optional.empty()` if the input does not start with `add`. Otherwise it matches `add m/MODULE_CODE c/CREDITS g/GRADE`, with the fields in this order, and throws `InvalidFormatException` with the usage message if they are missing or out of order. It then checks the credits and the grade, and throws `InvalidAddException` if the credits are not a whole number from 1 to 40 (`Module.MIN_CREDITS` to `Module.MAX_CREDITS`) or if `Grade#fromLabel(String)` does not recognise the grade.
 * `AddCommand#execute(Student)` — creates a `Module` whose name is its code, with an empty description and no S/U, and passes it to `Student#addModule`. It returns `Response.forDataChange(message, module)`, so that the new record is saved.
-* `Student#addModule(Module)` — checks for an existing module with the same code, ignoring letter case, using `isModuleExists`. If a duplicate exists, it logs a warning and throws `DuplicateModuleException`; otherwise, it appends the module to `moduleList`.
+* `Student#addModule(Module)` — checks for an existing module with the same code, ignoring letter case, using the private method `hasModuleCode`. If a duplicate exists, it logs a warning and throws `DuplicateModuleException`; otherwise, it appends the module to `moduleList`.
 
 Given below is an example usage scenario.
 
@@ -266,7 +266,7 @@ The following sequence diagram shows how the `delete 2` command is processed.
 The edit feature is facilitated by `EditCommand`, `Student#editModule(int, String, Integer, Grade)` and the setters in `Module`.
 
 * `EditCommand#parse(String)` — claims any input that starts with `edit`. It then matches `edit\s+(\d+)` followed by any number of `m/`, `c/` and `g/` fields, reads each field, and builds an `EditCommand`. A field the user did not give is `null`, meaning "keep the current value". If the input starts with `edit` but is malformed, it throws `EditException` with the usage message instead of returning empty, because otherwise the user would see the misleading "Unknown command".
-* `Student#editModule(...)` — validates everything first (for example, that the new credits are from 1 to 40 and the new code is not used by another module), then applies the given fields through `Module#setModuleCode`, `setCredit` and `setGrade`, and returns the edited module.
+* `Student#editModule(...)` — validates everything first (for example, that the new credits are from 1 to 40, that the new code is not used by another module, and that the new credits of an S/U-ed module still fit in the S/U quota), then applies the given fields through `Module#setModuleCode`, `setCredit` and `setGrade`, and returns the edited module.
 * `EditCommand#execute(Student)` — calls `editModule` and returns a `Response` with the message and the updated module.
 
 Given below is an example usage scenario.
@@ -289,7 +289,7 @@ The following activity diagram shows the checks that `editModule` makes before i
 
 <img src="images/EditActivity.png" alt="Activity diagram of the checks made by editModule" width="340" />
 
-**Note:** All checks happen before any setter is called, so a rejected edit never leaves a module half-edited.
+**Note:** All checks happen before any setter is called, so a rejected edit never leaves a module half-edited. The S/U quota check gives the module's current credits back to the quota before comparing, so the remaining quota can never go below zero.
 
 #### Design considerations
 
@@ -619,7 +619,7 @@ The GPA feature is facilitated by `GpaCommand` (a subclass of `Command`) and `St
 * `GpaCommand#parse(String)` — matches `gpa(\s.*)?`, so extra text after `gpa` is ignored as stated in the User Guide, and returns a `GpaCommand`. Non-matching input returns `Optional.empty()` so the next parser can be tried.
 * `GpaCommand#execute(Student)` — calls `Student#calculateGpa()` and returns a `Response` containing `Your GPA is %.2f`. It uses the plain `Response` constructor, so no storage save is requested.
 * `Student#calculateGpa()` — calls the private helper `calculateGpaData(Iterable<Module>)`, then divides the total grade points by the total credits. If no module contributes, it throws `GpaException`.
-* `Student#calculateGpaData(Iterable<Module>)` — loops through the modules and skips any module that is SU-ed or whose `Grade#isAffectsGpa()` is false (such as `CS` and `CU`). For every other module it adds `Grade#getGradePoint() × credits` to the total grade points and the credits to the total credits, and returns both in a `GpaData` record.
+* `Student#calculateGpaData(Iterable<Module>)` — loops through the modules and skips any module that is SU-ed or whose `Grade#affectsGpa()` is false (such as `CS` and `CU`). For every other module it adds `Grade#getGradePoint() × credits` to the total grade points and the credits to the total credits, and returns both in a `GpaData` record.
 
 Given below is an example usage scenario.
 
@@ -719,12 +719,12 @@ The following sequence diagram shows how `quota` is processed.
 
 #### Implementation
 
-The target GPA feature is facilitated by `TargetGpaCommand`, `Student#targetGPA(double, int)`, `Student#calculateGpaData(Iterable<Module>)` and `Grade#estimateLetterGrade(double)`. It calculates the average grade point needed over the remaining modular credits to reach a desired cumulative GPA.
+The target GPA feature is facilitated by `TargetGpaCommand`, `Student#getTargetGpaMessage(double, int)`, `Student#calculateGpaData(Iterable<Module>)` and `Grade#estimateLetterGrade(double)`. It calculates the average grade point needed over the remaining modular credits to reach a desired cumulative GPA.
 
 * `TargetGpaCommand#parse(String)` — returns `Optional.empty()` if the input does not start with `target`. Otherwise it matches `target\s+(\S+)\s+r/(\S+)`, converts the target with `ParserUtil#parseDecimal` and the remaining MCs with `ParserUtil#parseInteger`, and creates a `TargetGpaCommand`. A missing field, or a value that is not a valid number (including `NaN` and `Infinity`), throws `InvalidFormatException` with the usage message.
-* `TargetGpaCommand#execute(Student)` — calls `Student#targetGPA(target, remainingMcs)` and wraps the returned message in a `Response`.
+* `TargetGpaCommand#execute(Student)` — calls `Student#getTargetGpaMessage(target, remainingMcs)` and wraps the returned message in a `Response`.
 * `Student#calculateGpaData(Iterable<Module>)` — iterates through the supplied modules and returns a private `GpaData` record containing the total weighted grade points and GPA-contributing credits. S/U modules and grades such as `CS` and `CU` are excluded.
-* `Student#targetGPA(double, int)` — checks that the target is greater than 0 and at most 5.0, and that the remaining MCs are positive. It throws `TargetException` for invalid values and `GpaException` when no recorded module contributes to GPA. It then calculates the required average and returns the appropriate message.
+* `Student#getTargetGpaMessage(double, int)` — checks that the target is greater than 0 and at most 5.0, and that the remaining MCs are positive. It throws `TargetException` for invalid values and `GpaException` when no recorded module contributes to GPA. It then calculates the required average and returns the appropriate message.
 * `Grade#estimateLetterGrade(double)` — provides the approximate letter grade shown alongside a reachable required average.
 
 Let `P` be the current weighted grade-point total, `C` the current GPA-contributing MCs, `F` the remaining MCs, and `T` the target GPA. The required future average `R` is:
@@ -739,19 +739,19 @@ Step 1. The student has recorded `CS2113` (4 MCs, A-) and `MA1521` (4 MCs, B+). 
 
 Step 2. The user executes `target 4.50 r/8`. `TargetGpaCommand#parse` constructs a command with target 4.50 and 8 remaining MCs.
 
-Step 3. `execute(student)` calls `Student#targetGPA(4.50, 8)`. The required average is `(4.50 × 16 − 34) / 8 = 4.75`. The returned `Response` includes the current GPA, required grade point and an approximate letter grade.
+Step 3. `execute(student)` calls `Student#getTargetGpaMessage(4.50, 8)`. The required average is `(4.50 × 16 − 34) / 8 = 4.75`. The returned `Response` includes the current GPA, required grade point and an approximate letter grade.
 
 The following sequence diagram shows how `target 4.50 r/8` is processed.
 
-<img src="images/TargetGpaSequence.png" alt="Sequence diagram of the targetGPA command" width="760" />
+<img src="images/TargetGpaSequence.png" alt="Sequence diagram of the target command" width="760" />
 
-**Note:** `Student#targetGPA` handles three outcomes: if `R <= 0`, the target is already secured; if `R > 5`, it reports the best achievable GPA, assuming 5.0 in every remaining MC and rounded to two decimal places; otherwise it reports `R` and an approximate letter grade. A target that is not greater than 0 and at most 5.0 (`MAX_GRADE_POINT`), or remaining MCs that are not positive, are rejected with `TargetException` before the calculation. The MC totals are added as `double` values, so a very large number of remaining MCs cannot overflow.
+**Note:** `Student#getTargetGpaMessage` handles three outcomes: if `R <= 0`, the target is already secured; if `R > 5`, it reports the best achievable GPA, assuming 5.0 in every remaining MC and rounded to two decimal places; otherwise it reports `R` and an approximate letter grade. A target that is not greater than 0 and at most 5.0 (`MAX_GRADE_POINT`), or remaining MCs that are not positive, are rejected with `TargetException` before the calculation. The MC totals are added as `double` values, so a very large number of remaining MCs cannot overflow.
 
 #### Design considerations
 
 **Aspect: Where the GPA calculation is performed**
 
-* **Alternative 1 (current choice):** `Student#targetGPA` performs the calculation, while `TargetGpaCommand` handles parsing and creates the `Response`.
+* **Alternative 1 (current choice):** `Student#getTargetGpaMessage` performs the calculation, while `TargetGpaCommand` handles parsing and creates the `Response`.
   * Pros: Keeps GPA business rules in the domain layer and makes the command straightforward to test.
   * Cons: Adds calculation and message-formatting responsibilities to `Student`.
 * **Alternative 2:** Calculate the required average inside `TargetGpaCommand`.
@@ -763,7 +763,7 @@ The following sequence diagram shows how `target 4.50 r/8` is processed.
 * **Alternative 1 (current choice):** Use a private `GpaData` record returned by `calculateGpaData(Iterable<Module>)`.
   * Pros: Overall, target and semester GPA calculations share the same credit-weighted totals and exclusions.
   * Cons: Requires an additional helper method and record.
-* **Alternative 2:** Recompute totals separately in `calculateGpa()` and `targetGPA()`.
+* **Alternative 2:** Recompute totals separately in `calculateGpa()` and `getTargetGpaMessage()`.
   * Pros: Fewer helper declarations.
   * Cons: Repeats iteration logic and risks inconsistent exclusions.
 
@@ -961,6 +961,7 @@ Prerequisites: the same three modules, none marked S/U.
 1. Test case: `su 2` again<br>Expected: An error, because the module already has SU applied. Nothing is changed.
 1. Test case: `unsu 2`<br>Expected: `Removed SU on module 2:` followed by the module and the remaining SU quota, which is back to what it was before `su 2`. `gpa` again shows `Your GPA is 4.50`.
 1. Test case: `su 99`<br>Expected: An error about an invalid index. Nothing is changed.
+1. Test case: `su 2`, then `edit 2 c/40`<br>Expected: An error saying that module 2 is S/U-ed and only 28 MCs of S/U quota are available for it. The credits are unchanged. Run `unsu 2` afterwards to restore the data.
 
 #### Checking the quota when nothing is SU-ed
 

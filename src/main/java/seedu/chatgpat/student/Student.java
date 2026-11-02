@@ -59,10 +59,16 @@ public class Student {
         return suQuota;
     }
 
-    public boolean isModuleExists(ArrayList<Module> modules, String newCode) {
-        for (Module m : modules) {
-            if (m.getModuleCode().equalsIgnoreCase(newCode)) {
-                return true; // find duplicates
+    /**
+     * Returns whether a module with the given code is already recorded, ignoring letter case.
+     *
+     * @param code The module code to look for.
+     * @return True if another module already uses the code.
+     */
+    private boolean hasModuleCode(String code) {
+        for (Module module : moduleList) {
+            if (module.getModuleCode().equalsIgnoreCase(code)) {
+                return true;
             }
         }
         return false;
@@ -75,7 +81,7 @@ public class Student {
      * @throws DuplicateModuleException If a module with the same code already exists.
      */
     public void addModule(Module module) throws DuplicateModuleException {
-        if (isModuleExists(moduleList, module.getModuleCode())) {
+        if (hasModuleCode(module.getModuleCode())) {
             logger.warning(() -> String.format(
                     "Rejected adding duplicate module: %s", module.getModuleCode()));
             throw new DuplicateModuleException(module.getModuleCode());
@@ -231,7 +237,7 @@ public class Student {
             }
 
             Grade grade = module.getGrade();
-            if (!grade.isAffectsGpa()) {
+            if (!grade.affectsGpa()) {
                 continue;
             }
 
@@ -309,7 +315,8 @@ public class Student {
      * @param newGrade  The new grade, or null to keep the current one.
      * @return The edited module.
      * @throws InvalidIndexException If the index is out of range.
-     * @throws EditException         If no field is given, the credit is not positive, or the new code already exists.
+     * @throws EditException         If no field is given, the credits are not from 1 to 40, the new code already
+     *                               exists, or the new credits of an S/U-ed module do not fit in the S/U quota.
      */
     public Module editModule(int index, String newCode, Integer newCredit, Grade newGrade) {
         Module module = getModule(index);
@@ -320,8 +327,11 @@ public class Student {
             throw new EditException(Module.MESSAGE_INVALID_CREDITS);
         }
         if (newCode != null && !newCode.equalsIgnoreCase(module.getModuleCode())
-                && isModuleExists(moduleList, newCode)) {
+                && hasModuleCode(newCode)) {
             throw new EditException("Module already exists: " + newCode);
+        }
+        if (newCredit != null && module.isSu()) {
+            checkSuQuotaAllowsCredit(index, module, newCredit);
         }
 
         if (newCode != null) {
@@ -337,23 +347,46 @@ public class Student {
     }
 
     /**
+     * Checks that changing the credits of an S/U-ed module keeps the S/U quota from going below zero.
+     * The module's current credits are given back to the quota before the new credits are checked.
+     *
+     * @param index     The 1-based index of the module, used in the error message.
+     * @param module    The S/U-ed module whose credits will change.
+     * @param newCredit The new number of credits.
+     * @throws EditException If the new credits do not fit in the S/U quota.
+     */
+    private void checkSuQuotaAllowsCredit(int index, Module module, int newCredit) {
+        assert module.isSu() : "Only S/U-ed modules use the S/U quota";
+        int availableQuota = getRemainingSuQuota() + module.getCredit();
+        if (newCredit > availableQuota) {
+            logger.warning(() -> String.format(
+                    "Rejected editing module %d (%s) to %d MCs: only %d MCs of S/U quota available",
+                    index, module.getModuleCode(), newCredit, availableQuota));
+            throw new EditException(String.format(
+                    "Module %d is S/U-ed, and only %d MCs of S/U quota are available for it. "
+                            + "Remove the S/U with unsu %d first, or use fewer credits.",
+                    index, availableQuota, index));
+        }
+    }
+
+    /**
      * Calculates the average grade point needed over the remaining MCs to reach a target GPA,
      * and returns a message describing the result.
      * Example: with CS2113 (4 MCs, A-) and MA1521 (4 MCs, B+), the current GPA is 4.25 over 8 MCs.
      *
      * @param target       The GPA that the student wants to reach, greater than 0 and at most 5.0.
-     * @param remainingMCs The number of MCs that the student still has to complete.
+     * @param remainingMcs The number of MCs that the student still has to complete.
      * @return The message describing the current GPA and the average grade point needed.
      * @throws TargetException If the target or the remaining MCs are out of range.
      * @throws GpaException    If no recorded module contributes to the GPA.
      */
-    public String targetGPA(double target, int remainingMCs) {
+    public String getTargetGpaMessage(double target, int remainingMcs) {
         if (target <= 0 || target > MAX_GRADE_POINT) {
-            logger.warning("Reject targetGPA calculation: target GPA is out of range.");
+            logger.warning("Rejected target GPA calculation: target GPA is out of range.");
             throw new TargetException("Target GPA must be greater than 0 and at most 5.0.");
         }
-        if (remainingMCs <= 0) {
-            logger.warning("Reject targetGPA calculation: remainingMCs is non-positive.");
+        if (remainingMcs <= 0) {
+            logger.warning("Rejected target GPA calculation: remainingMcs is non-positive.");
             throw new TargetException("Remaining MCs must be positive.");
         }
         GpaData data = calculateGpaData(moduleList);
@@ -361,25 +394,25 @@ public class Student {
             throw new GpaException(
                     "No modules contribute to GPA. Add a graded module first.");
         }
-        int currentMCs = data.totalCredits();
+        int currentMcs = data.totalCredits();
         double currentPoints = data.totalGradePoints();
-        String currentGpaDataMessage = String.format("Current GPA: %.2f over %d MCs.%n", calculateGpa(), currentMCs);
+        String currentGpaDataMessage = String.format("Current GPA: %.2f over %d MCs.%n", calculateGpa(), currentMcs);
         // The MCs are added as doubles, so a very large number of remaining MCs cannot overflow an int.
-        double totalMCs = (double) currentMCs + remainingMCs;
-        double averageGradePointsRequired = (target * totalMCs - currentPoints) / remainingMCs;
+        double totalMcs = (double) currentMcs + remainingMcs;
+        double averageGradePointsRequired = (target * totalMcs - currentPoints) / remainingMcs;
         if (averageGradePointsRequired <= 0.0) {
             return currentGpaDataMessage +
                     "You already secured your target GPA!";
         }
         if (averageGradePointsRequired > MAX_GRADE_POINT) {
-            double bestAchievableGPA = (currentPoints + MAX_GRADE_POINT * remainingMCs) / totalMCs;
+            double bestAchievableGpa = (currentPoints + MAX_GRADE_POINT * remainingMcs) / totalMcs;
             return currentGpaDataMessage +
-                    String.format("Your target GPA is unreachable! The best you can reach is %.2f.", bestAchievableGPA);
+                    String.format("Your target GPA is unreachable! The best you can reach is %.2f.", bestAchievableGpa);
         }
         String estimatedLetterGrade = Grade.estimateLetterGrade(averageGradePointsRequired);
         return currentGpaDataMessage +
                 "To reach " + target +
-                " after " + remainingMCs +
+                " after " + remainingMcs +
                 " more MCs, you need an average grade point of " +
                 String.format("%.2f", averageGradePointsRequired) + " (About " + estimatedLetterGrade + ")";
     }
