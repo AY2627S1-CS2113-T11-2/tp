@@ -79,7 +79,7 @@ public class StudentTest {
     public void targetGPA_unreachable_correctOutput() {
         String expected = String.format("Current GPA: 4.25 over 8 MCs.%n") +
                 "Your target GPA is unreachable! "
-                + "The best you can reach is 4.5";
+                + "The best you can reach is 4.50.";
 
         String actual = student.targetGPA(5.0, 4);
 

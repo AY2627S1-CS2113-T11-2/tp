@@ -21,6 +21,8 @@ import seedu.chatgpat.exception.TargetException;
  * Stores a student's modules and manages their grades, semester plans, and SU quota.
  */
 public class Student {
+    /** The highest grade point on the NUS scale, which is also the highest possible GPA. */
+    private static final double MAX_GRADE_POINT = 5.0;
     private static final Logger logger =
             Logger.getLogger(Student.class.getName());
 
@@ -259,7 +261,7 @@ public class Student {
 
         double gpa = data.totalGradePoints() / data.totalCredits();
 
-        assert gpa >= 0.0 && gpa <= 5.0
+        assert gpa >= 0.0 && gpa <= MAX_GRADE_POINT
                 : "GPA should be within [0, 5]";
 
         return gpa;
@@ -335,17 +337,20 @@ public class Student {
     }
 
     /**
-     * Implements a new command that answers “what average grade do I need from here to hit my target?”
+     * Calculates the average grade point needed over the remaining MCs to reach a target GPA,
+     * and returns a message describing the result.
      * Example: with CS2113 (4 MCs, A-) and MA1521 (4 MCs, B+), the current GPA is 4.25 over 8 MCs.
      *
-     * @param target       User's target GPA
-     * @param remainingMCs number of credits that remains for the user
-     * @return String of expected output message
+     * @param target       The GPA that the student wants to reach, greater than 0 and at most 5.0.
+     * @param remainingMCs The number of MCs that the student still has to complete.
+     * @return The message describing the current GPA and the average grade point needed.
+     * @throws TargetException If the target or the remaining MCs are out of range.
+     * @throws GpaException    If no recorded module contributes to the GPA.
      */
     public String targetGPA(double target, int remainingMCs) {
-        if (target <= 0 || target > 5.0) {
+        if (target <= 0 || target > MAX_GRADE_POINT) {
             logger.warning("Reject targetGPA calculation: target GPA is out of range.");
-            throw new TargetException("Target GPA must be between 0.0 and 5.0 inclusively.");
+            throw new TargetException("Target GPA must be greater than 0 and at most 5.0.");
         }
         if (remainingMCs <= 0) {
             logger.warning("Reject targetGPA calculation: remainingMCs is non-positive.");
@@ -364,10 +369,11 @@ public class Student {
             return currentGpaDataMessage +
                     "You already secured your target GPA!";
         }
-        if (averageGradePointsRequired > 5.0) {
-            double bestAchievableGPA = (currentPoints + 5.0 * remainingMCs) / (currentMCs + remainingMCs);
+        if (averageGradePointsRequired > MAX_GRADE_POINT) {
+            double bestAchievableGPA = (currentPoints + MAX_GRADE_POINT * remainingMCs)
+                    / (currentMCs + remainingMCs);
             return currentGpaDataMessage +
-                    "Your target GPA is unreachable! The best you can reach is " + bestAchievableGPA;
+                    String.format("Your target GPA is unreachable! The best you can reach is %.2f.", bestAchievableGPA);
         }
         String estimatedLetterGrade = Grade.estimateLetterGrade(averageGradePointsRequired);
         return currentGpaDataMessage +

@@ -135,7 +135,7 @@ public class TargetGpaCommandTest {
 
         assertEquals(String.format("Current GPA: 4.25 over 8 MCs.%n") +
                 "Your target GPA is unreachable! "
-                        + "The best you can reach is 4.5",
+                        + "The best you can reach is 4.50.",
                 response.message());
     }
 
