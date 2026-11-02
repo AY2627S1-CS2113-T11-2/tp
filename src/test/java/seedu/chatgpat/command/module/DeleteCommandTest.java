@@ -11,6 +11,7 @@ import seedu.chatgpat.exception.InvalidIndexException;
 import seedu.chatgpat.student.Grade;
 import seedu.chatgpat.student.Module;
 import seedu.chatgpat.student.Student;
+import seedu.chatgpat.exception.InvalidFormatException;
 
 /**
  * Tests the {@link DeleteCommand} class.
@@ -23,13 +24,24 @@ public class DeleteCommandTest {
     }
 
     @Test
-    public void parse_missingIndex_returnsEmpty() {
-        assertTrue(DeleteCommand.parse("delete").isEmpty());
+    public void parse_missingIndex_throwsInvalidFormatException() {
+        assertThrows(InvalidFormatException.class, () -> DeleteCommand.parse("delete"));
     }
 
     @Test
-    public void parse_nonNumericIndex_returnsEmpty() {
-        assertTrue(DeleteCommand.parse("delete abc").isEmpty());
+    public void parse_nonNumericIndex_throwsInvalidFormatException() {
+        assertThrows(InvalidFormatException.class, () -> DeleteCommand.parse("delete abc"));
+        assertThrows(InvalidFormatException.class, () -> DeleteCommand.parse("delete -1"));
+    }
+
+    @Test
+    public void parse_indexTooLarge_throwsInvalidFormatException() {
+        assertThrows(InvalidFormatException.class, () -> DeleteCommand.parse("delete 99999999999"));
+    }
+
+    @Test
+    public void parse_wordStartingWithDelete_returnsEmpty() {
+        assertTrue(DeleteCommand.parse("deleteall").isEmpty());
     }
 
     @Test

@@ -14,6 +14,7 @@ import seedu.chatgpat.exception.InvalidAddException;
 import seedu.chatgpat.student.Grade;
 import seedu.chatgpat.student.Module;
 import seedu.chatgpat.student.Student;
+import seedu.chatgpat.exception.InvalidFormatException;
 
 /**
  * Tests the {@link AddCommand} class.
@@ -42,18 +43,33 @@ public class AddCommandTest {
     }
 
     /**
-     * Tests that unrelated or malformed inputs are not parsed.
+     * Tests that inputs which are not add commands are left for other parsers.
      */
     @Test
-    public void parse_invalidFormat_returnsEmpty() {
-        assertTrue(AddCommand.parse("add").isEmpty());
-        assertTrue(AddCommand.parse("add m/CS2113").isEmpty());
-        assertTrue(AddCommand.parse(
-                "add m/CS2113 c/4").isEmpty());
-        assertTrue(AddCommand.parse(
-                "add CS2113 4 A").isEmpty());
+    public void parse_otherCommand_returnsEmpty() {
         assertTrue(AddCommand.parse("list").isEmpty());
+        assertTrue(AddCommand.parse("address").isEmpty());
         assertTrue(AddCommand.parse("").isEmpty());
+    }
+
+    /**
+     * Tests that add commands with missing or misplaced fields show the usage.
+     */
+    @Test
+    public void parse_invalidFormat_throwsInvalidFormatException() {
+        assertThrows(InvalidFormatException.class, () -> AddCommand.parse("add"));
+        assertThrows(InvalidFormatException.class, () -> AddCommand.parse("add m/CS2113"));
+        assertThrows(InvalidFormatException.class, () -> AddCommand.parse("add m/CS2113 c/4"));
+        assertThrows(InvalidFormatException.class, () -> AddCommand.parse("add CS2113 4 A"));
+        assertThrows(InvalidFormatException.class, () -> AddCommand.parse("add c/4 m/CS2113 g/A"));
+    }
+
+    /**
+     * Tests that non-numeric credits are reported as invalid credits.
+     */
+    @Test
+    public void parse_nonNumericCredits_throwsInvalidAddException() {
+        assertThrows(InvalidAddException.class, () -> AddCommand.parse("add m/CS2113 c/abc g/A"));
     }
 
     /**
@@ -74,6 +90,16 @@ public class AddCommandTest {
         assertThrows(InvalidAddException.class,
                 () -> AddCommand.parse(
                         "add m/CS2113 c/0 g/A"));
+    }
+
+    /**
+     * Tests that the allowed range of credits is from 1 to 40.
+     */
+    @Test
+    public void parse_creditsAtAndAboveLimit_acceptsLimitAndRejectsAbove() {
+        assertTrue(AddCommand.parse("add m/CS2113 c/40 g/A").isPresent());
+        assertThrows(InvalidAddException.class,
+                () -> AddCommand.parse("add m/CS2113 c/41 g/A"));
     }
 
     /**

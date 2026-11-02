@@ -12,6 +12,7 @@ import seedu.chatgpat.command.Response;
  */
 public class ChatInterface {
     private static final int BAR_LENGTH = 72;
+    private static final String EXIT_QUERY = "exit";
     private static final String DIVIDER = "_".repeat(BAR_LENGTH) + "\n\n> ";
     private static final String BANNER =
         """
@@ -86,17 +87,22 @@ public class ChatInterface {
      * @param e The exception to log.
      */
     public void printError(Exception e) {
-        System.out.print("\nError detected. Please check the log file for details.\n");
+        System.out.print("\nSorry, something went wrong with that command. Please check it and try again.\n");
         logger.log(Level.WARNING, "Unchecked exception caught.", e);
         System.out.print(DIVIDER);
     }
 
     /**
      * Cleans and retrieves the user input.
+     * If the input has ended (for example, the user pressed Ctrl+D, or Ctrl+Z on Windows),
+     * there is nothing more to read, so the exit command is returned to end the program normally.
      *
-     * @return Trimmed user input.
+     * @return Trimmed user input, or the exit command if the input has ended.
      */
     public String getUserQuery() {
+        if (!scanner.hasNextLine()) {
+            return EXIT_QUERY;
+        }
         return scanner.nextLine().trim();
     }
 }

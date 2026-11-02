@@ -38,6 +38,7 @@ public class CommandManager {
      * @param student The student containing the module list.
      */
     public CommandManager(Student student) {
+        // FilterUnplannedCommand must come before FilterCommand, which reports any other filter input as an error.
         this(student, List.of(
             ListCommand::parse,
             ExitCommand::parse,
@@ -51,7 +52,6 @@ public class CommandManager {
             DeleteCommand::parse,
             EditCommand::parse,
             TargetGpaCommand::parse,
-            EditCommand::parse,
             PlanCommand::parse,
             UnplanCommand::parse,
             FilterUnplannedCommand::parse,

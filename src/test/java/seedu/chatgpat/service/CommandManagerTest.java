@@ -195,4 +195,17 @@ public class CommandManagerTest {
                 () -> manager.processQuery("badcommand"));
         assertEquals(true, exception.getMessage().contains("badcommand"));
     }
+
+    /**
+     * Tests that an empty input asks the user to type a command.
+     */
+    @Test
+    public void processQuery_emptyInput_asksForCommand() {
+        CommandManager manager = new CommandManager(new Student());
+
+        UnknownCommandException exception = assertThrows(
+                UnknownCommandException.class,
+                () -> manager.processQuery(""));
+        assertEquals("Please type a command. Type \"help\" for a list of commands.", exception.getMessage());
+    }
 }

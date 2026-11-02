@@ -13,6 +13,7 @@ import seedu.chatgpat.exception.TargetException;
 import seedu.chatgpat.student.Grade;
 import seedu.chatgpat.student.Module;
 import seedu.chatgpat.student.Student;
+import seedu.chatgpat.exception.InvalidFormatException;
 
 /**
  * Tests the {@link TargetGpaCommand} class.
@@ -52,30 +53,39 @@ public class TargetGpaCommandTest {
     }
 
     /**
-     * Tests that malformed command formats are not parsed.
+     * Tests that inputs which are not target commands are left for other parsers.
      */
     @Test
-    public void parse_invalidFormat_returnsEmpty() {
-        assertTrue(TargetGpaCommand.parse("target").isEmpty());
-        assertTrue(TargetGpaCommand.parse("target 4.5").isEmpty());
-        assertTrue(TargetGpaCommand.parse("target 4.5 8").isEmpty());
+    public void parse_otherCommand_returnsEmpty() {
         assertTrue(TargetGpaCommand.parse("targets 4.5 r/8").isEmpty());
         assertTrue(TargetGpaCommand.parse("").isEmpty());
     }
 
     /**
-     * Tests that non-numeric values cause parsing to fail.
+     * Tests that target commands with missing fields show the usage.
      */
     @Test
-    public void parse_invalidNumber_throwsNumberFormatException() {
-        assertThrows(NumberFormatException.class,
+    public void parse_invalidFormat_throwsInvalidFormatException() {
+        assertThrows(InvalidFormatException.class, () -> TargetGpaCommand.parse("target"));
+        assertThrows(InvalidFormatException.class, () -> TargetGpaCommand.parse("target 4.5"));
+        assertThrows(InvalidFormatException.class, () -> TargetGpaCommand.parse("target 4.5 8"));
+    }
+
+    /**
+     * Tests that values which are not valid numbers show the usage.
+     */
+    @Test
+    public void parse_invalidNumber_throwsInvalidFormatException() {
+        assertThrows(InvalidFormatException.class,
                 () -> TargetGpaCommand.parse("target abc r/8"));
-
-        assertThrows(NumberFormatException.class,
+        assertThrows(InvalidFormatException.class,
                 () -> TargetGpaCommand.parse("target 4.5 r/abc"));
-
-        assertThrows(NumberFormatException.class,
+        assertThrows(InvalidFormatException.class,
                 () -> TargetGpaCommand.parse("target 4.5 r/2.5"));
+        assertThrows(InvalidFormatException.class,
+                () -> TargetGpaCommand.parse("target NaN r/8"));
+        assertThrows(InvalidFormatException.class,
+                () -> TargetGpaCommand.parse("target Infinity r/8"));
     }
 
     /**
@@ -125,7 +135,7 @@ public class TargetGpaCommandTest {
 
         assertEquals(String.format("Current GPA: 4.25 over 8 MCs.%n") +
                 "Your target GPA is unreachable! "
-                        + "The best you can reach is 4.5",
+                        + "The best you can reach is 4.50.",
                 response.message());
     }
 

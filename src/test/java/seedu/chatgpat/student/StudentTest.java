@@ -2,6 +2,7 @@ package seedu.chatgpat.student;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 
@@ -79,11 +80,18 @@ public class StudentTest {
     public void targetGPA_unreachable_correctOutput() {
         String expected = String.format("Current GPA: 4.25 over 8 MCs.%n") +
                 "Your target GPA is unreachable! "
-                + "The best you can reach is 4.5";
+                + "The best you can reach is 4.50.";
 
         String actual = student.targetGPA(5.0, 4);
 
         assertEquals(expected, actual);
+    }
+
+    @Test
+    public void targetGPA_veryLargeRemainingMcs_doesNotOverflow() {
+        String actual = student.targetGPA(4.0, Integer.MAX_VALUE);
+
+        assertTrue(actual.contains("you need an average grade point of 4.00"));
     }
 
     @Test

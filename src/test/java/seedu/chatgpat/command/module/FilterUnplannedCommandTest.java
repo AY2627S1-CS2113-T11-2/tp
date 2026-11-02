@@ -61,7 +61,7 @@ public class FilterUnplannedCommandTest {
 
         String expected = "Modules not planned for any semester:" + sep
                 + "2. CS3231 | 4 MCs | Grade: B-" + sep
-                + "3. MA1521 | 4 MCs | Grade: B+" + sep;
+                + "3. MA1521 | 4 MCs | Grade: B+";
         assertEquals(expected, response.message());
     }
 
@@ -91,7 +91,7 @@ public class FilterUnplannedCommandTest {
         String expected = "Modules not planned for any semester:" + sep
                 + "1. CS2113 | 4 MCs | Grade: A-" + sep
                 + "2. CS3231 | 4 MCs | Grade: B-" + sep
-                + "3. MA1521 | 4 MCs | Grade: B+" + sep;
+                + "3. MA1521 | 4 MCs | Grade: B+";
         assertEquals(expected, response.message());
     }
 }
