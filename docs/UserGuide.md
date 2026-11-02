@@ -1,6 +1,12 @@
 # User Guide
+{:.no_toc}
 
 ChatGPat is a desktop application for managing student grades, optimized for use through a Command Line Interface (CLI). If you type quickly, ChatGPat can help you manage modules and GPA faster than traditional GUI applications.
+
+{::options toc_levels="2..3" /}
+
+* Table of Contents
+{:toc}
 
 ## Quick start
 

@@ -1,4 +1,10 @@
 # Developer Guide
+{:.no_toc}
+
+{::options toc_levels="2..3" /}
+
+* Table of Contents
+{:toc}
 
 ## Acknowledgements
 
