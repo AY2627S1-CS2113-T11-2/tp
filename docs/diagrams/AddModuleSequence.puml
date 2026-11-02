@@ -24,15 +24,15 @@ deactivate M
 A -> S : addModule(module)
 activate S
 S -> S : isModuleExists(moduleCode)
-alt [module already exists]
+alt module already exists
   S --> A : throws DuplicateModuleException
-else [module code is unique]
+else module code is unique
   S -> S : moduleList.add(module)
   S --> A : completed
   A --> CM : Response
 end
 deactivate S
 deactivate A
-CM -->] : Response / exception
+[<-- CM : Response
 deactivate CM
 @enduml
