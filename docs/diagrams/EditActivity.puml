@@ -13,7 +13,7 @@ if () then ([no field given])
     stop
 else ([else])
 endif
-if () then ([credits not positive])
+if () then ([credits not from 1 to 40])
     :throw EditException;
     stop
 else ([else])

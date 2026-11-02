@@ -8,9 +8,10 @@
 
 ## Acknowledgements
 
-* ChatGpat is developed on the SE-EDU `duke` project template.
+* ChatGPat is developed on the SE-EDU `duke` project template.
 * The structure of this guide follows the [AddressBook-Level3 Developer Guide](https://se-education.org/addressbook-level3/DeveloperGuide.html).
 * Diagrams are drawn with [PlantUML](https://plantuml.com/) and exported as images, so that they also show on the GitHub Pages site.
+* The idea of a shared `ParserUtil` class for converting typed values is adapted from [AddressBook-Level3](https://github.com/se-edu/addressbook-level3).
 
 ## Design
 
@@ -20,7 +21,7 @@
 
 <img src="images/ArchitectureDiagram.png" alt="Architecture diagram" width="640" />
 
-The *Architecture Diagram* given above explains the high-level design of ChatGpat. Given below is a quick overview of its main components and how they interact with each other.
+The *Architecture Diagram* given above explains the high-level design of ChatGPat. Given below is a quick overview of its main components and how they interact with each other.
 
 **Main components of the architecture**
 
@@ -45,7 +46,9 @@ When the app starts, `ChatGpat` asks `Storage` to load the saved modules, adds t
 
 When the user types a command, `ChatGpat` passes it to `CommandManager#processQuery`. `CommandManager` asks each `Parser` in turn, and the first one that returns a `Command` wins. The diagram shows only the parser of `AddCommand`, because the parsers tried before it return an empty `Optional` for this input. The command is executed with the `Student` object. If the returned `Response` says that data was changed, as it does for `add`, `ChatGpat` asks `Storage` to save the modules. Then `ChatInterface` prints the `Response` together with any save error. The loop repeats until the user exits.
 
-If something goes wrong, the code throws an exception that is a subclass of `ChatGpatException`. `ChatGpat#run` catches it and prints its message as a normal response. Any other unexpected exception is caught by a second `catch` block, which prints a generic error and logs the details. Either way, the loop continues.
+If something goes wrong, the code throws an exception that is a subclass of `ChatGpatException`. `ChatGpat#run` catches it and prints its message as a normal response. Any other unexpected exception is caught by a second `catch` block, which prints a short apology and logs the details. Either way, the loop continues.
+
+**Logging:** `ChatGpat#main` sends all log messages to the file `chatgpat.log` in the folder where the program runs, so that warnings and stack traces never appear in the terminal. If the file cannot be created, for example in a write-protected folder, the program runs without logging.
 
 The sections below give more details of each component.
 
@@ -58,7 +61,7 @@ The UI component consists of the class `ChatInterface`.
 It does the following:
 
 * prints the welcome message (`printWelcome`), responses (`printResponse`) and error messages (`printError`)
-* reads one line of input from the user (`getUserQuery`)
+* reads one line of input from the user (`getUserQuery`). If the input has ended, for example because the user pressed Ctrl+D, it returns `exit`, so that the program closes normally instead of failing on every read
 * shows the message of a `Response` and, if the response contains a module (`hasModule`), that module as well, so that the user can see what a command changed
 
 `ChatInterface` does not know how a command works. It depends only on `Response`, which is what the Logic component returns. All other components return values or throw exceptions instead of printing.
@@ -72,7 +75,7 @@ The Logic component turns the user's input into a change in the Model. Here is h
 1. `ChatGpat` calls `CommandManager#processQuery` with the line that the user typed.
 2. `CommandManager` holds a list of `Parser<Command>` objects. Each command class (shown as `XYZCommand` in the diagram, standing for `AddCommand`, `DeleteCommand` and so on) provides a static `parse` method, and each of these methods is registered as one `Parser`.
 3. `CommandManager` tries the parsers in order and uses the first one that returns a `Command`. If none does, it throws `UnknownCommandException`.
-4. A parser returns an empty `Optional` if the input is not meant for it. A command that claims a keyword (`edit`, `plan` and `unplan`) instead throws its own exception with a usage message when the arguments are malformed, so that the user does not see a misleading "unknown command".
+4. A parser returns an empty `Optional` if the input does not start with its command word. Every command that takes parameters *claims* its command word: if the rest of the input is malformed, `parse` throws an exception whose message is the command's usage, so that the user does not see a misleading "unknown command". Most commands use `InvalidFormatException` for this; `edit`, `plan` and `unplan` use their own `EditException` and `PlanException`. Typed numbers are converted with `ParserUtil#parseInteger` and `ParserUtil#parseDecimal`, which report a value that is not a valid number (including `NaN`, `Infinity` and numbers too large to store) in the same way. Because `FilterCommand` claims every input that starts with `filter`, it is registered after `FilterUnplannedCommand`.
 5. `CommandManager` calls `Command#execute(Student)`. The command asks `Student` to make the change and returns a `Response` that holds a message and, optionally, a module.
 
 `Command` is abstract, and `Response` is a plain value object. Neither of them prints anything.
@@ -114,9 +117,9 @@ The file format, the escaping rules and how to extend them are described in the 
 
 <img src="images/CommonClassDiagram.png" alt="Class diagram of the exception classes" width="700" />
 
-The classes in this section are used by more than one component. They are the exceptions of ChatGpat.
+The classes in this section are used by more than one component. They are the exceptions of ChatGPat.
 
-`ChatGpatException` is an abstract, unchecked exception. Every error that the user can cause has its own subclass, for example `InvalidIndexException`, `EditException` or `PlanException`, which carries a message that is meant to be shown to the user. `ChatGpat#run` catches `ChatGpatException` and prints the message, so a bad command never ends the program.
+`ChatGpatException` is an abstract, unchecked exception. Every error that the user can cause has its own subclass, for example `InvalidIndexException`, `EditException` or `PlanException`, which carries a message that is meant to be shown to the user. `ChatGpat#run` catches `ChatGpatException` and prints the message, so a bad command never ends the program. `InvalidFormatException` is used by many commands for input in the wrong format, and its message is the command's usage, for example `Usage: delete INDEX`.
 
 ---
 
@@ -128,7 +131,7 @@ This section describes noteworthy details on how certain features are implemente
 
 #### Implementation
 
-`HelpCommand` returns the command reference in a `Response`, leaving the application running without saving. Its parser accepts `help` with optional whitespace-separated arguments but rejects words such as `helpful`. Unknown-command errors direct users to `help`.
+`HelpCommand` returns the command reference in a `Response`, leaving the application running without saving. Its parser accepts `help` with optional whitespace-separated arguments but rejects words such as `helpful`. Unknown-command errors direct users to `help`, and an empty input asks the user to type a command.
 
 #### Design considerations
 
@@ -140,56 +143,56 @@ The help text is stored in `HelpCommand` and printed by `ChatInterface`. Update 
 
 #### Implementation
 
-The add feature stores a new module in the student's record. The domain-side implementation is provided by `Module` and `Student#addModule(Module)`; command parsing is handled by `AddCommand` as shown in the architecture diagrams.
+The add feature stores a new module in the student's record. It is facilitated by `AddCommand`, `Module` and `Student#addModule(Module)`.
 
-* `AddCommand` — interprets the user's module details and creates a `Module` before passing it to `Student`. The existing architecture illustrates `add m/CS2113 c/4 g/A-`; the uploaded files do not include `AddCommand`, so its complete parsing and validation rules cannot be confirmed here.
-* `Module` — holds the module code, name, description, modular credits, grade and S/U status. `Grade#fromLabel(String)` converts a grade label (such as `A-`) to the corresponding `Grade` enum and rejects unknown labels.
+* `AddCommand#parse(String)` — returns `Optional.empty()` if the input does not start with `add`. Otherwise it matches `add m/MODULE_CODE c/CREDITS g/GRADE`, with the fields in this order, and throws `InvalidFormatException` with the usage message if they are missing or out of order. It then checks the credits and the grade, and throws `InvalidAddException` if the credits are not a whole number from 1 to 40 (`Module.MIN_CREDITS` to `Module.MAX_CREDITS`) or if `Grade#fromLabel(String)` does not recognise the grade.
+* `AddCommand#execute(Student)` — creates a `Module` whose name is its code, with an empty description and no S/U, and passes it to `Student#addModule`. It returns `Response.forDataChange(message, module)`, so that the new record is saved.
 * `Student#addModule(Module)` — checks for an existing module with the same code, ignoring letter case, using `isModuleExists`. If a duplicate exists, it logs a warning and throws `DuplicateModuleException`; otherwise, it appends the module to `moduleList`.
 
 Given below is an example usage scenario.
 
-Step 1. The user enters `add m/CS2113 c/4 g/A-` (as illustrated in the architecture section).
+Step 1. The user enters `add m/CS2113 c/4 g/A-`.
 
-Step 2. The add command constructs a `Module` from the parsed details and invokes `Student#addModule(module)`.
+Step 2. `AddCommand#parse` checks the format, the credits and the grade, and returns an `AddCommand`. Its `execute` method creates the `Module` and calls `Student#addModule(module)`.
 
-Step 3. `Student` checks the module code for duplicates and adds the module to the list if none exists. The command then returns a `Response` for display by `ChatInterface`.
+Step 3. `Student` finds no module with the code `CS2113`, so it adds the module to the list. The command returns a response with the new module and the new number of modules, and the record is saved.
 
-TThe following sequence diagram illustrates how the
-Add Module feature is executed.
+The following sequence diagram shows how the add command is executed.
 
 <img src="images/AddModuleSequence.png" alt="Sequence diagram of the add modules command" width="760" />
 
-**Note:** Duplicate checking is case-insensitive. The `Module` constructor preserves the supplied `isSuApplied` value so saved S/U status can be restored. The command's exact syntax beyond the architecture example should be checked against `AddCommand.java`.
+**Note:** Duplicate checking is case-insensitive, so `cs2113` and `CS2113` count as the same module. The limit of 40 MCs keeps the GPA totals realistic and prevents integer overflow. The `Module` constructor keeps the given `isSuApplied` value, so that a saved S/U status can be restored when the data is loaded.
 
 ### List All Modules feature
 
 #### Implementation
 
-The list feature displays the student's recorded modules in insertion order through `ListCommand` and `Module#toString()`. The former `Student#printModuleList()` method has been removed.
+The list feature displays the student's recorded modules in the order they were added, through `ListCommand` and `Module#toString()`.
 
-* `ListCommand#execute(Student)` — returns a `Response` containing `No modules recorded yet.` if the list is empty, or a heading and module entries numbered from 1. `ChatInterface` prints the response.
-* `Module#toString()` — formats each entry as `MODULE_CODE | CREDIT MCs | Grade: GRADE`, with ` [S/U]` appended if S/U has been applied.
-* `Student#getModuleCount()` and `Student#getModule(int)` — provide the count and 1-based indexed access for other commands. `getModule` throws `InvalidIndexException` for an invalid index.
+* `ListCommand#parse(String)` — accepts `list`, ignoring any extra words after it.
+* `ListCommand#execute(Student)` — returns a `Response` containing `No modules recorded yet.` if the list is empty, or a heading and the modules numbered from 1. `ChatInterface` prints the response.
+* `Module#toString()` — formats each entry as `MODULE_CODE | CREDIT MCs | Grade: GRADE`, with `[S/U]` added after the grade if S/U has been applied and the semester (for example `| Y2S1`) appended if the module is planned.
+* `Student#getModuleCount()` and `Student#getModule(int)` — provide the count and 1-based indexed access. `getModule` throws `InvalidIndexException` for an invalid index.
 
 Given below is an example usage scenario.
 
 Step 1. The student has added `CS2113` (4 MCs, A-) and `MA1521` (4 MCs, B+).
 
-Step 2. The user enters `list`. The command dispatch layer selects `ListCommand`.
+Step 2. The user enters `list`. `CommandManager` selects `ListCommand`.
 
 Step 3. The displayed list is:
 
 ```text
 Here are your recorded modules:
-1. CS2113 | 4 MCs | Grade: A-
-2. MA1521 | 4 MCs | Grade: B+
+  1. CS2113 | 4 MCs | Grade: A-
+  2. MA1521 | 4 MCs | Grade: B+
 ```
 
-The following sequence diagram illustrates the existing `Student#printModuleList()` method. The command-to-UI integration cannot be verified without the list command source.
+The following sequence diagram shows how `list` is processed.
 
 <img src="images/ListModulesSequence.png" alt="Sequence diagram of the list modules command" width="760" />
 
-**Note:** Unlike the general architecture's response-based output design, the uploaded `printModuleList()` prints directly to `System.out`. If the actual list command uses `Response` instead, its implementation should be documented after inspecting that command.
+**Note:** The numbers shown are the same `INDEX` values that `edit`, `delete`, `su`, `unsu`, `plan` and `unplan` use. Listing is read-only and does not request a storage save.
 
 #### Design considerations
 
@@ -206,7 +209,7 @@ The following sequence diagram illustrates the existing `Student#printModuleList
 
 `delete`, `edit`, `plan` and `unplan` all act on one module, chosen by its position in the list shown by `list` (`INDEX`, starting from 1). They share the same flow:
 
-1. `CommandManager` asks each `Parser<Command>` in turn. The `parse` method of the matching command checks the input with regular expressions and returns a `Command`, or an empty `Optional` if the input is not meant for it.
+1. `CommandManager` asks each `Parser<Command>` in turn. The `parse` method of the matching command checks the input with regular expressions and returns a `Command`, or an empty `Optional` if the input does not start with its command word. If it does, but the index is missing or is not a whole number, `parse` throws an exception with the usage message instead.
 2. `Command#execute(Student)` asks `Student` to change the data, then returns a `Response`. By design, commands do not print: `ChatInterface` prints every `Response`.
 3. `Student` looks the module up with `Student#getModule(int)`, which throws `InvalidIndexException` when the index is out of range. Expected errors such as this are `ChatGpatException`s: `ChatGpat#run` catches them and prints the message as a normal response. Any other unexpected exception is caught by a second `catch` block, which prints a generic error and logs the details. Either way the program keeps running, and the commands above validate their input before changing any data.
 
@@ -218,7 +221,7 @@ The sequence diagrams below follow the UML notation used in the course: `:Name` 
 
 The delete feature is facilitated by `DeleteCommand` (a subclass of `Command`) and `Student#deleteModule(int)`.
 
-* `DeleteCommand#parse(String)` — matches `delete\s+(\d+)` and returns a `DeleteCommand` holding the index, or `Optional.empty()` so that the next parser is tried.
+* `DeleteCommand#parse(String)` — returns `Optional.empty()` if the input does not start with `delete`, so that the next parser is tried. Otherwise it matches `delete\s+(\d+)` and returns a `DeleteCommand` holding the index. A missing or invalid index throws `InvalidFormatException` with `Usage: delete INDEX`.
 * `Student#deleteModule(int)` — looks the module up with `getModule`, removes it from `moduleList`, and returns the removed module.
 * `DeleteCommand#execute(Student)` — calls `deleteModule` and returns a `Response` containing the message and the removed module, so `ChatInterface` can show what was deleted.
 
@@ -263,7 +266,7 @@ The following sequence diagram shows how the `delete 2` command is processed.
 The edit feature is facilitated by `EditCommand`, `Student#editModule(int, String, Integer, Grade)` and the setters in `Module`.
 
 * `EditCommand#parse(String)` — claims any input that starts with `edit`. It then matches `edit\s+(\d+)` followed by any number of `m/`, `c/` and `g/` fields, reads each field, and builds an `EditCommand`. A field the user did not give is `null`, meaning "keep the current value". If the input starts with `edit` but is malformed, it throws `EditException` with the usage message instead of returning empty, because otherwise the user would see the misleading "Unknown command".
-* `Student#editModule(...)` — validates everything first, then applies the given fields through `Module#setModuleCode`, `setCredit` and `setGrade`, and returns the edited module.
+* `Student#editModule(...)` — validates everything first (for example, that the new credits are from 1 to 40 and the new code is not used by another module), then applies the given fields through `Module#setModuleCode`, `setCredit` and `setGrade`, and returns the edited module.
 * `EditCommand#execute(Student)` — calls `editModule` and returns a `Response` with the message and the updated module.
 
 Given below is an example usage scenario.
@@ -411,8 +414,8 @@ The filter feature shows the modules of one semester, or the modules that are no
 
 <img src="images/FilterClassDiagram.png" alt="Class diagram of the filter feature" width="640" />
 
-* `FilterCommand#parse(String)` — matches `filter\s+y/(\d+)\s+s/(\d+)`, converts the captured year and semester to integers, and returns a `FilterCommand`. Non-matching input returns `Optional.empty()` so the next parser can be tried.
-* `FilterUnplannedCommand#parse(String)` — matches `filter\s+unplanned` and returns a `FilterUnplannedCommand`, or `Optional.empty()` otherwise. The two patterns cannot match the same input, so the order in which the parsers are registered does not matter.
+* `FilterUnplannedCommand#parse(String)` — matches `filter\s+unplanned` and returns a `FilterUnplannedCommand`, or `Optional.empty()` otherwise.
+* `FilterCommand#parse(String)` — returns `Optional.empty()` if the input does not start with `filter`. Otherwise it matches `filter\s+y/(\d+)\s+s/(\d+)`, converts the year and semester with `ParserUtil#parseInteger`, and returns a `FilterCommand`. Any other input that starts with `filter` throws `InvalidFormatException` with the usage of both forms. For this reason, `FilterUnplannedCommand` is registered before `FilterCommand` in `CommandManager`, so that `filter unplanned` is claimed first.
 * `Student#filterModule(Semester)` and `Student#filterUnplannedModules()` — each passes a condition to the private method `Student#filterIndexes(Predicate<Module>)`. It walks through `moduleList` and returns an `ArrayList<Integer>` of the **1-based indexes** of the modules that satisfy the condition. No module is removed or reordered.
 * `FilterCommand#formatResult(...)` — a package-private static method that both commands use. It looks up each returned index with `Student#getModule(int)` and builds the text: a header, then one line per module with its original index. If there are no indexes, it returns the command's "empty" message instead.
 * `FilterCommand#execute(Student)` — constructs a `Semester` from the parsed values, which throws `PlanException` if the year or semester is out of range. It then calls `Student#filterModule(semester)` and `formatResult`, with the header `Modules in Y2S1:` and the empty message `No modules found in Y2S1.` for the requested semester.
@@ -513,7 +516,7 @@ Grouping and calculations stay in `Student`; the command formats the response. R
 
 The SU feature is facilitated by `SuCommand` (a subclass of `Command`), `Student#applySu(int)`, and `Student#getRemainingSuQuota()`. It marks a module as SU-ed, excludes it from GPA calculations, and consumes the module's MCs from the available SU quota.
 
-* `SuCommand#parse(String)` — matches `su\s+(\d+)`, converts the captured 1-based index to an integer, and returns a `SuCommand`. Non-matching input returns `Optional.empty()`.
+* `SuCommand#parse(String)` — returns `Optional.empty()` if the input does not start with `su` followed by a space or nothing, so `summary` is left for its own parser. Otherwise it matches `su\s+(\d+)`, converts the 1-based index with `ParserUtil#parseInteger`, and returns a `SuCommand`. A missing or invalid index throws `InvalidFormatException` with `Usage: su INDEX`.
 * `Student#applySu(int)` — retrieves the module through `getModule(index)`, rejects an already SU-ed module or one whose credits exceed the remaining quota with `SuException`, and otherwise calls `Module#setSu(true)` before returning the module.
 * `Student#getRemainingSuQuota()` — subtracts `getUsedSuMcs()` (the sum of credits for SU-ed modules) from the student's total `suQuota`.
 * `SuCommand#execute(Student)` — calls `applySu(index)`, obtains the remaining quota, and returns `Response.forDataChange(message, module)` so the updated record is saved.
@@ -563,7 +566,7 @@ The following sequence diagram shows how `su 2` is processed.
 
 The UnSU feature is facilitated by `UnsuCommand` (a subclass of `Command`), `Student#removeSu(int)`, and `Student#getRemainingSuQuota()`. It removes a module's SU status, restores its eligibility for GPA calculations when its grade affects GPA, and releases its MCs back to the SU quota.
 
-* `UnsuCommand#parse(String)` — matches `unsu\s+(\d+)`, converts the captured 1-based index to an integer, and returns an `UnsuCommand`, or `Optional.empty()` for non-matching input.
+* `UnsuCommand#parse(String)` — returns `Optional.empty()` if the input does not start with `unsu`. Otherwise it matches `unsu\s+(\d+)` and returns an `UnsuCommand`. A missing or invalid index throws `InvalidFormatException` with `Usage: unsu INDEX`.
 * `Student#removeSu(int)` — retrieves the module with `getModule(index)`, throws `SuException` if it is not currently SU-ed, and otherwise calls `Module#setSu(false)` and returns the module.
 * `Student#getRemainingSuQuota()` — recalculates remaining MCs from the modules that are still SU-ed.
 * `UnsuCommand#execute(Student)` — calls `removeSu(index)`, formats the module and remaining quota, and returns `Response.forDataChange(message, module)` to request a save.
@@ -718,7 +721,7 @@ The following sequence diagram shows how `quota` is processed.
 
 The target GPA feature is facilitated by `TargetGpaCommand`, `Student#targetGPA(double, int)`, `Student#calculateGpaData(Iterable<Module>)` and `Grade#estimateLetterGrade(double)`. It calculates the average grade point needed over the remaining modular credits to reach a desired cumulative GPA.
 
-* `TargetGpaCommand#parse(String)` — matches `target\\s+(\\S+)\\s+r/(\\S+)`, converts the target to a `double` and the remaining MCs to an `int`, and creates a `TargetGpaCommand`. If the pattern does not match, it returns `Optional.empty()`. Numeric conversion errors can propagate as `NumberFormatException`.
+* `TargetGpaCommand#parse(String)` — returns `Optional.empty()` if the input does not start with `target`. Otherwise it matches `target\s+(\S+)\s+r/(\S+)`, converts the target with `ParserUtil#parseDecimal` and the remaining MCs with `ParserUtil#parseInteger`, and creates a `TargetGpaCommand`. A missing field, or a value that is not a valid number (including `NaN` and `Infinity`), throws `InvalidFormatException` with the usage message.
 * `TargetGpaCommand#execute(Student)` — calls `Student#targetGPA(target, remainingMcs)` and wraps the returned message in a `Response`.
 * `Student#calculateGpaData(Iterable<Module>)` — iterates through the supplied modules and returns a private `GpaData` record containing the total weighted grade points and GPA-contributing credits. S/U modules and grades such as `CS` and `CU` are excluded.
 * `Student#targetGPA(double, int)` — checks that the target is greater than 0 and at most 5.0, and that the remaining MCs are positive. It throws `TargetException` for invalid values and `GpaException` when no recorded module contributes to GPA. It then calculates the required average and returns the appropriate message.
@@ -738,11 +741,11 @@ Step 2. The user executes `target 4.50 r/8`. `TargetGpaCommand#parse` constructs
 
 Step 3. `execute(student)` calls `Student#targetGPA(4.50, 8)`. The required average is `(4.50 × 16 − 34) / 8 = 4.75`. The returned `Response` includes the current GPA, required grade point and an approximate letter grade.
 
-The following sequence diagram shows how `target 4.50 r/8` is processed. Its `calculateGpaData()` call now takes `moduleList` as an argument.
+The following sequence diagram shows how `target 4.50 r/8` is processed.
 
 <img src="images/TargetGpaSequence.png" alt="Sequence diagram of the targetGPA command" width="760" />
 
-**Note:** `Student#targetGPA` handles three outcomes: if `R <= 0`, the target is already secured; if `R > 5`, it reports the best achievable GPA assuming 5.0 in every remaining MC; otherwise it reports `R` and an approximate letter grade. Invalid target values or remaining MCs are rejected before calculation. The current implementation uses `target <= 0` as its lower-bound check, although its exception text describes the interval as inclusive of 0.0.
+**Note:** `Student#targetGPA` handles three outcomes: if `R <= 0`, the target is already secured; if `R > 5`, it reports the best achievable GPA, assuming 5.0 in every remaining MC and rounded to two decimal places; otherwise it reports `R` and an approximate letter grade. A target that is not greater than 0 and at most 5.0 (`MAX_GRADE_POINT`), or remaining MCs that are not positive, are rejected with `TargetException` before the calculation. The MC totals are added as `double` values, so a very large number of remaining MCs cannot overflow.
 
 #### Design considerations
 
@@ -768,7 +771,7 @@ The following sequence diagram shows how `target 4.50 r/8` is processed. Its `ca
 
 #### Implementation
 
-`ExitCommand` accepts `exit` with optional whitespace-separated arguments and returns `Goodbye!` with `Response.isExit()` set to `true`. `ChatInterface` prints the message without another prompt, then `ChatGpat#run` returns.
+`ExitCommand` accepts `exit` with optional whitespace-separated arguments and returns `Goodbye!` with `Response.isExit()` set to `true`. `ChatInterface` prints the message without another prompt, then `ChatGpat#run` returns. When the input ends (for example after Ctrl+D), `ChatInterface#getUserQuery` returns `exit`, so the program closes in the same way.
 
 #### Design considerations
 
@@ -785,7 +788,7 @@ The file format has no header and stores one module per physical line. These pos
 | Position | Field | Validation / default |
 | --- | --- | --- |
 | 1 | Module code | Required, non-empty, no whitespace; case-insensitive uniqueness |
-| 2 | MCs | Required positive Java `int` |
+| 2 | MCs | Required whole number from 1 to 40 (`Module.MIN_CREDITS` to `Module.MAX_CREDITS`) |
 | 3 | Original grade | Required `Grade` label, including `CS` and `CU` |
 | 4 | S/U flag | `0` or `1`; omitted/empty defaults to `0` |
 | 5 | Semester | `Y1S1` through `Y4S2`, or `-`; omitted/empty is unplanned |
@@ -810,7 +813,7 @@ Escapes are `\|`, `\\`, `\n`, `\r`, `\t`, and `\s` (literal space). The reader t
 
 ### Target user profile
 
-ChatGpat is for NUS Computing students who are strategic about their GPA, especially those working towards a GPA-dependent goal such as a student exchange (SEP) place or a scholarship. The target user:
+ChatGPat is for NUS Computing students who are strategic about their GPA, especially those working towards a GPA-dependent goal such as a student exchange (SEP) place or a scholarship. The target user:
 
 * has to keep track of many modules across several semesters
 * has a limited S/U quota and needs to decide which modules to use it on
@@ -822,7 +825,7 @@ ChatGpat is for NUS Computing students who are strategic about their GPA, especi
 
 Students working towards a GPA goal usually track their grades and S/U decisions in spreadsheets or in their heads. Updating a spreadsheet by hand is slow and easy to get wrong, and an S/U decision cannot be undone once it is made.
 
-ChatGpat keeps the student's modules, grades and semester plan in one place and answers with one typed command:
+ChatGPat keeps the student's modules, grades and semester plan in one place and answers with one typed command:
 
 * **What is my GPA now?** It calculates the GPA from the recorded grades, leaving out modules that are marked S/U.
 * **What if I S/U this module, or get a different grade?** `su`, `unsu` and `edit` change one module, so the student can compare the GPA before and after, and `quota` shows how much S/U quota is left.
@@ -858,17 +861,17 @@ This lets the student make informed S/U decisions and plan ahead which modules t
 2. Should work offline, without an internet connection.
 3. A user with above-average typing speed for regular English text (not code) should be able to complete most tasks faster by typing commands than by using the mouse.
 4. Should respond to every command without noticeable delay when up to 100 modules are recorded.
-5. GPA calculations should follow the NUS grade-point scale.
+5. The data should be stored locally in a human-editable text file, so that users can back it up, move it to another computer, or fix it in a text editor.
 6. A command with invalid input should never crash the program or change the stored data. The user should get an error message that explains what went wrong.
 7. Should be usable by a student who has not used the application before, with the `help` command listing every available command.
 
 ## Glossary
 
-* *GPA* - Grade point average: the average of the grade points of the recorded modules, weighted by their MCs. NUS calls this the CAP, but ChatGpat calls it GPA.
+* *GPA* - Grade point average: the average of the grade points of the recorded modules, weighted by their MCs. NUS calls this the CAP, but ChatGPat calls it GPA.
 * *Grade point* - The number that a letter grade is worth on the NUS scale. It is used in the GPA calculation.
 * *MC* - Modular Credit: the weight of a module. A module worth 4 MCs counts twice as much in the GPA as a module worth 2 MCs.
-* *S/U (SU)* - The NUS option to have a module graded Satisfactory/Unsatisfactory instead of with a letter grade, so that it does not count towards the GPA. In ChatGpat, applying SU to a module only leaves it out of the GPA calculation, so that the student can see the effect. It does not change anything in the real NUS records.
-* *SU quota* - The number of MCs of modules a student may S/U. ChatGpat shows the remaining quota after each `su` and `unsu`.
+* *S/U (SU)* - The NUS option to have a module graded Satisfactory/Unsatisfactory instead of with a letter grade, so that it does not count towards the GPA. In ChatGPat, applying SU to a module only leaves it out of the GPA calculation, so that the student can see the effect. It does not change anything in the real NUS records.
+* *SU quota* - The number of MCs of modules a student may S/U. ChatGPat shows the remaining quota after each `su` and `unsu`.
 * *Index* - The position of a module in the list shown by `list`, starting from 1. Commands such as `edit`, `delete`, `su`, `unsu`, `plan` and `unplan` use it to pick a module.
 * *Semester notation* - A semester is written as `Y2S1`, meaning year 2, semester 1. Years go from 1 to 4 and semesters from 1 to 2.
 * *Planned module* - A module that has been placed in a year and semester with `plan`. A module that has not is an *unplanned module*.
@@ -879,9 +882,9 @@ This lets the student make informed S/U decisions and plan ahead which modules t
 
 ## Instructions for manual testing
 
-Given below are instructions to test ChatGpat manually.
+Given below are instructions to test ChatGPat manually.
 
-**Note:** These instructions only provide a starting point for testers. Testers are expected to do more exploratory testing. All tests assume you start ChatGpat as described in the User Guide.
+**Note:** These instructions only provide a starting point for testers. Testers are expected to do more exploratory testing. All tests assume you start ChatGPat as described in the User Guide.
 
 ### Launch and exit
 
@@ -893,9 +896,14 @@ Given below are instructions to test ChatGpat manually.
 
 1. Test case: `exit`<br>Expected: `Goodbye!` is shown and the program ends.
 
-#### Unknown commands
+#### Unknown commands and wrong formats
 
 1. Test case: `hello`<br>Expected: An error saying the command is not known. The program keeps running.
+1. Test case: `delete abc`<br>Expected: `Usage: delete INDEX`. Nothing is changed.
+
+#### Ending the input
+
+1. Test case: press `Ctrl+D` (or `Ctrl+Z` and then Enter on Windows) at the prompt<br>Expected: `Goodbye!` is shown and the program ends, as with `exit`.
 
 ### Adding and listing modules
 
@@ -906,7 +914,8 @@ Prerequisites: no modules are recorded. `list` shows `No modules recorded yet.`
 1. Test case: `add m/CS2113 c/4 g/A-`<br>Expected: `New module added: CS2113 (4 MCs, Grade: A-)` and `You now have 1 module recorded.`
 1. Test case: `add m/MA1521 c/4 g/B+`, then `add m/CS2040 c/4 g/A`<br>Expected: The module is added each time, and the count goes to 2 and then 3.
 1. Test case: `add m/CS2113 c/4 g/A-` again<br>Expected: An error saying the module is already recorded. The count does not change.
-1. Test case: `add CS2113`<br>Expected: An error. Nothing is added.
+1. Test case: `add CS2113`<br>Expected: `Usage: add m/MODULE_CODE c/CREDITS g/GRADE`. Nothing is added.
+1. Test case: `add m/CS1010 c/41 g/A`<br>Expected: `Credits must be a whole number from 1 to 40. Got: 41`. Nothing is added.
 
 #### Listing modules
 
@@ -922,7 +931,7 @@ Prerequisites: the three modules above are recorded.
 
 1. Test case: `edit 2 c/5 g/A`<br>Expected: `Updated module 2:` followed by MA1521 with 5 MCs and grade A. The code is unchanged.
 1. Test case: `edit 2 c/4 g/B+`<br>Expected: Module 2 is back to 4 MCs and grade B+. Run this to restore the data for the later tests.
-1. Test case: `edit 2`<br>Expected: An error showing the usage of `edit`. Module 2 is unchanged.
+1. Test case: `edit 2`<br>Expected: `Provide at least one field to edit.` Module 2 is unchanged.
 1. Test case: `edit 99 g/A`<br>Expected: An error about an invalid index. Nothing is changed.
 1. Test case: `edit 1 m/MA1521`<br>Expected: An error, because another module already uses that code. Module 1 is unchanged.
 
@@ -966,7 +975,7 @@ Prerequisites: no module is marked S/U.
 Prerequisites: the same three modules, none marked S/U.
 
 1. Test case: `target 4.5 r/12`<br>Expected: A message stating the average grade needed in the remaining 12 MCs to reach a GPA of 4.5, or that the target cannot be reached.
-1. Test case: `target 4.5`<br>Expected: An error, because the remaining MCs (`r/`) are missing. No result is shown.
+1. Test case: `target 4.5`<br>Expected: The usage of `target`, because the remaining MCs (`r/`) are missing. No result is shown.
 
 #### Showing the summary
 
@@ -1002,3 +1011,18 @@ Prerequisites: module 1 and module 2 are planned, module 3 is not.
 1. Test case: `filter unplanned`<br>Expected: `Modules not planned for any semester:` followed by module 3 with its original number.
 1. Test case: plan module 3, then `filter unplanned`<br>Expected: `All modules are planned.`
 1. Test case: delete every module, then `filter unplanned`<br>Expected: `No modules recorded yet.`
+
+### Saving data
+
+#### Saving and loading modules
+
+Prerequisites: at least one module is recorded.
+
+1. Test case: `exit`, then start ChatGPat again in the same folder and run `list`<br>Expected: The same modules as before, in the same order, with their S/U status and semesters.
+
+#### Dealing with a corrupted data file
+
+Prerequisites: ChatGPat is not running, and `data/modules.txt` contains at least one module.
+
+1. Test case: add the line `CS9999 | abc | A` to `data/modules.txt` in a text editor, then start ChatGPat<br>Expected: A warning names the file, the line number and the reason, for example `Credits must be a whole number from 1 to 40.` The other modules still load.
+1. Test case: delete the `data` folder, then start ChatGPat<br>Expected: ChatGPat starts with no modules and no warning. The folder is created again after the first data-changing command.
