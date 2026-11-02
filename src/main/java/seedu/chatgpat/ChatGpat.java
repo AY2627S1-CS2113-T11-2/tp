@@ -89,6 +89,7 @@ public class ChatGpat {
             try {
                 userQuery = ui.getUserQuery();
                 response = commandManager.processQuery(userQuery);
+                assert response != null : "Every command returns a response";
                 List<String> warnings = response.isDataChanged()
                         ? storage.save(student.getModules()).stream().toList() : List.of();
                 ui.printResponse(response, warnings);

@@ -23,7 +23,7 @@ M --> A : module
 deactivate M
 A -> S : addModule(module)
 activate S
-S -> S : isModuleExists(moduleCode)
+S -> S : hasModuleCode(moduleCode)
 alt module already exists
   S --> A : throws DuplicateModuleException
 else module code is unique

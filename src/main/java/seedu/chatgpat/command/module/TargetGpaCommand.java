@@ -72,7 +72,7 @@ public class TargetGpaCommand extends Command {
      */
     @Override
     public Response execute(Student student) {
-        String message = student.targetGPA(target, remainingMcs);
+        String message = student.getTargetGpaMessage(target, remainingMcs);
         return new Response(message);
     }
 }

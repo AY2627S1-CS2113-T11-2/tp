@@ -50,6 +50,7 @@ public record Response(String message, Module module, boolean isExit, boolean is
      * @return A response requesting a save and keeping the application running.
      */
     public static Response forDataChange(String message, Module module) {
+        assert module != null : "A data change always shows the module that was changed";
         return new Response(message, module, false, true);
     }
 

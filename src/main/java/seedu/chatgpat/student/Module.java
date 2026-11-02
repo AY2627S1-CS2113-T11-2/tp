@@ -19,12 +19,13 @@ public class Module {
     private Grade grade;
     private boolean isSuApplied;
     private Semester semester;
+
     /**
      * Constructs a module, preserving its SU status when restoring saved records.
      * The semester is initially unplanned and can be assigned with {@link #setSemester(Semester)}.
      */
     public Module(String moduleCode, String moduleName, String moduleDescription,
-                  int credit,Grade grade,boolean isSuApplied) {
+                  int credit, Grade grade, boolean isSuApplied) {
         this.moduleCode = moduleCode;
         this.moduleName = moduleName;
         this.moduleDescription = moduleDescription;

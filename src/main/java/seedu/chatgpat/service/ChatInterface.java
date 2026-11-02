@@ -29,13 +29,6 @@ public class ChatInterface {
     private final Logger logger = Logger.getLogger(ChatInterface.class.getName());
 
     /**
-     * Prints the program banner and a welcoming message.
-     */
-    public void printWelcome() {
-        printWelcome(List.of());
-    }
-
-    /**
      * Prints startup warnings before the first command prompt.
      *
      * @param warnings Problems encountered while loading saved modules.
