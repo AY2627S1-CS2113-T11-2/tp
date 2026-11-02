@@ -1,6 +1,6 @@
-# Zhi Hou - Project Portfolio Page
+# Zhi Hou's Project Portfolio Page
 
-## Overview
+## Project: ChatGPAT
 
 ChatGPAT is a desktop application designed to help university students manage their academic modules, track their grades, and plan their academic performance. It allows students to organize their modules, calculate their Grade Point Average (GPA), and set academic goals.
 The application is written in Java and uses a Command Line Interface (CLI) for user interactions.
@@ -33,7 +33,9 @@ Given below are my contributions to the project.
 
 * **Project management**:
   * Published the [v2.0 release](https://github.com/AY2627S1-CS2113-T11-2/tp/releases/tag/v2.0) with its JAR file.
+  * Published the [v2.1 release](https://github.com/AY2627S1-CS2113-T11-2/tp/releases/tag/v2.1) with its JAR file.
   * Merged teammates' PRs into `master` (for example [#47](https://github.com/AY2627S1-CS2113-T11-2/tp/pull/47), [#51](https://github.com/AY2627S1-CS2113-T11-2/tp/pull/51), [#58](https://github.com/AY2627S1-CS2113-T11-2/tp/pull/58)) and resolved Developer Guide merge conflicts.
+  * Led a final review of all the codes and fix all issues before submission.
 
 * **Enhancements to existing features**:
     * Updated the `help` command to list every command and its format, and updated `CommandManagerTest` to match ([#56](https://github.com/AY2627S1-CS2113-T11-2/tp/pull/56)).
