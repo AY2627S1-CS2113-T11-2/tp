@@ -15,6 +15,7 @@ import seedu.chatgpat.student.Semester;
 import seedu.chatgpat.student.Student;
 
 import seedu.chatgpat.exception.PlanException;
+import seedu.chatgpat.exception.InvalidFormatException;
 
 public class FilterCommandTest {
     private Student student;
@@ -35,15 +36,24 @@ public class FilterCommandTest {
     }
 
     /**
-     * Tests that unrelated or malformed commands are rejected.
+     * Tests that unrelated commands are left for other parsers.
      */
     @Test
-    public void parse_invalidInput_returnsEmpty() {
-        assertTrue(FilterCommand.parse("filter").isEmpty());
-        assertTrue(FilterCommand.parse("filter y/2").isEmpty());
-        assertTrue(FilterCommand.parse("filter 2 2").isEmpty());
+    public void parse_otherCommand_returnsEmpty() {
         assertTrue(FilterCommand.parse("list").isEmpty());
+        assertTrue(FilterCommand.parse("filtered").isEmpty());
         assertTrue(FilterCommand.parse("").isEmpty());
+    }
+
+    /**
+     * Tests that malformed filter commands show the usage.
+     */
+    @Test
+    public void parse_invalidFormat_throwsInvalidFormatException() {
+        assertThrows(InvalidFormatException.class, () -> FilterCommand.parse("filter"));
+        assertThrows(InvalidFormatException.class, () -> FilterCommand.parse("filter y/2"));
+        assertThrows(InvalidFormatException.class, () -> FilterCommand.parse("filter 2 2"));
+        assertThrows(InvalidFormatException.class, () -> FilterCommand.parse("filter y/99999999999 s/1"));
     }
     /**
      * Tests that filtering returns only the module

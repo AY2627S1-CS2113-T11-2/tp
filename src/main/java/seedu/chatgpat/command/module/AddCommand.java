@@ -7,6 +7,7 @@ import java.util.regex.Pattern;
 import seedu.chatgpat.command.Command;
 import seedu.chatgpat.command.Response;
 import seedu.chatgpat.exception.InvalidAddException;
+import seedu.chatgpat.exception.InvalidFormatException;
 import seedu.chatgpat.student.Grade;
 import seedu.chatgpat.student.Module;
 import seedu.chatgpat.student.Student;
@@ -15,8 +16,10 @@ import seedu.chatgpat.student.Student;
  * Represents the command that adds a module to the student's records.
  */
 public class AddCommand extends Command {
-    private static final Pattern PATTERN = Pattern.compile(
-            "add\\s+m/(\\S+)\\s+c/(\\d+)\\s+g/(\\S+)");
+    private static final Pattern COMMAND_PATTERN = Pattern.compile("add(\\s.*)?");
+    private static final Pattern ARGUMENT_PATTERN = Pattern.compile(
+            "add\\s+m/(\\S+)\\s+c/(\\S+)\\s+g/(\\S+)");
+    private static final String MESSAGE_USAGE = "Usage: add m/MODULE_CODE c/CREDITS g/GRADE";
     private static final String MESSAGE_SUCCESS =
             "New module added: %s (%d MCs, Grade: %s)\nYou now have %d module%s recorded.";
 
@@ -38,15 +41,20 @@ public class AddCommand extends Command {
     }
 
     /**
-     * Parses the user input into an AddCommand if it matches the add format.
+     * Parses the user input into an AddCommand if it starts with the add keyword.
      *
      * @param  userQuery The trimmed user input.
-     * @return           The parsed AddCommand, or empty if the input does not match.
+     * @return           The parsed AddCommand, or empty if the input is not an add command.
+     * @throws InvalidFormatException
+     *         If the input starts with add but its fields are missing or in the wrong order.
      */
     public static Optional<Command> parse(String userQuery) {
-        Matcher matcher = PATTERN.matcher(userQuery);
-        if (!matcher.matches()) {
+        if (!COMMAND_PATTERN.matcher(userQuery).matches()) {
             return Optional.empty();
+        }
+        Matcher matcher = ARGUMENT_PATTERN.matcher(userQuery);
+        if (!matcher.matches()) {
+            throw new InvalidFormatException(MESSAGE_USAGE);
         }
 
         String moduleCode = matcher.group(1);
