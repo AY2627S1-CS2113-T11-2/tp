@@ -74,11 +74,10 @@ public class FilterCommand extends Command {
         if (indexes.isEmpty()) {
             return emptyMessage;
         }
-        StringBuilder message = new StringBuilder(header + String.format("%n"));
+        StringBuilder message = new StringBuilder(header);
         for (int index : indexes) {
-            message.append(String.format("%d. ", index))
-                    .append(student.getModule(index))
-                    .append(String.format("%n"));
+            message.append(String.format("%n%d. ", index))
+                    .append(student.getModule(index));
         }
         return message.toString();
     }

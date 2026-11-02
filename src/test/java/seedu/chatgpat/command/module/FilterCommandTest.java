@@ -68,8 +68,7 @@ public class FilterCommandTest {
 
         String expected = "Modules in Y2S2:"
                 + System.lineSeparator()
-                + "1. CS2113 | 4 MCs | Grade: A- | Y2S2"
-                + System.lineSeparator();
+                + "1. CS2113 | 4 MCs | Grade: A- | Y2S2";
 
         assertEquals(expected, response.message());
     }
@@ -125,8 +124,7 @@ public class FilterCommandTest {
                 + System.lineSeparator()
                 + "1. CS2113 | 4 MCs | Grade: A- | Y2S2"
                 + System.lineSeparator()
-                + "3. MA1521 | 4 MCs | Grade: B+ | Y2S2"
-                + System.lineSeparator();
+                + "3. MA1521 | 4 MCs | Grade: B+ | Y2S2";
 
         assertEquals(expected, response.message());
     }
@@ -169,8 +167,7 @@ public class FilterCommandTest {
 
         String expected = "Modules in Y2S2:"
                 + System.lineSeparator()
-                + "1. CS2113 | 4 MCs | Grade: A- | Y2S2"
-                + System.lineSeparator();
+                + "1. CS2113 | 4 MCs | Grade: A- | Y2S2";
 
         assertEquals(expected, response.message());
     }

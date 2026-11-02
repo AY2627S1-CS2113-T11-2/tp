@@ -10,6 +10,8 @@ public class UnknownCommandException extends ChatGpatException {
      * @param command The unknown command entered by the user.
      */
     public UnknownCommandException(String command) {
-        super("Unknown command detected: " + command + ". Type \"help\" for a list of commands.");
+        super(command.isBlank()
+                ? "Please type a command. Type \"help\" for a list of commands."
+                : "Unknown command detected: " + command + ". Type \"help\" for a list of commands.");
     }
 }

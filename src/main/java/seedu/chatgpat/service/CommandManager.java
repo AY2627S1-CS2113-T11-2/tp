@@ -52,7 +52,6 @@ public class CommandManager {
             DeleteCommand::parse,
             EditCommand::parse,
             TargetGpaCommand::parse,
-            EditCommand::parse,
             PlanCommand::parse,
             UnplanCommand::parse,
             FilterUnplannedCommand::parse,
