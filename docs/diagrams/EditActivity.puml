@@ -23,6 +23,11 @@ if () then ([new code used by another module])
     stop
 else ([else])
 endif
+if () then ([S/U-ed and new credits\nexceed the S/U quota])
+    :throw EditException;
+    stop
+else ([else])
+endif
 :apply the given fields\nto the module;
 :return the edited module;
 stop

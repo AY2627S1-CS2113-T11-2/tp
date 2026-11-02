@@ -7,6 +7,7 @@ import java.util.regex.Pattern;
 import seedu.chatgpat.command.Command;
 import seedu.chatgpat.command.Response;
 import seedu.chatgpat.exception.EditException;
+import seedu.chatgpat.parser.ParserUtil;
 import seedu.chatgpat.student.Grade;
 import seedu.chatgpat.student.Module;
 import seedu.chatgpat.student.Student;
@@ -59,7 +60,7 @@ public class EditCommand extends Command {
         if (!matcher.matches()) {
             throw new EditException(MESSAGE_USAGE);
         }
-        int parsedIndex = Integer.parseInt(matcher.group(1));
+        int parsedIndex = ParserUtil.parseInteger(matcher.group(1), MESSAGE_USAGE);
         String code = null;
         Integer credit = null;
         Grade grade = null;

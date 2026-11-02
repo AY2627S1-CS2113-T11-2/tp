@@ -266,7 +266,7 @@ The following sequence diagram shows how the `delete 2` command is processed.
 The edit feature is facilitated by `EditCommand`, `Student#editModule(int, String, Integer, Grade)` and the setters in `Module`.
 
 * `EditCommand#parse(String)` — claims any input that starts with `edit`. It then matches `edit\s+(\d+)` followed by any number of `m/`, `c/` and `g/` fields, reads each field, and builds an `EditCommand`. A field the user did not give is `null`, meaning "keep the current value". If the input starts with `edit` but is malformed, it throws `EditException` with the usage message instead of returning empty, because otherwise the user would see the misleading "Unknown command".
-* `Student#editModule(...)` — validates everything first (for example, that the new credits are from 1 to 40 and the new code is not used by another module), then applies the given fields through `Module#setModuleCode`, `setCredit` and `setGrade`, and returns the edited module.
+* `Student#editModule(...)` — validates everything first (for example, that the new credits are from 1 to 40, that the new code is not used by another module, and that the new credits of an S/U-ed module still fit in the S/U quota), then applies the given fields through `Module#setModuleCode`, `setCredit` and `setGrade`, and returns the edited module.
 * `EditCommand#execute(Student)` — calls `editModule` and returns a `Response` with the message and the updated module.
 
 Given below is an example usage scenario.
@@ -289,7 +289,7 @@ The following activity diagram shows the checks that `editModule` makes before i
 
 <img src="images/EditActivity.png" alt="Activity diagram of the checks made by editModule" width="340" />
 
-**Note:** All checks happen before any setter is called, so a rejected edit never leaves a module half-edited.
+**Note:** All checks happen before any setter is called, so a rejected edit never leaves a module half-edited. The S/U quota check gives the module's current credits back to the quota before comparing, so the remaining quota can never go below zero.
 
 #### Design considerations
 
@@ -961,6 +961,7 @@ Prerequisites: the same three modules, none marked S/U.
 1. Test case: `su 2` again<br>Expected: An error, because the module already has SU applied. Nothing is changed.
 1. Test case: `unsu 2`<br>Expected: `Removed SU on module 2:` followed by the module and the remaining SU quota, which is back to what it was before `su 2`. `gpa` again shows `Your GPA is 4.50`.
 1. Test case: `su 99`<br>Expected: An error about an invalid index. Nothing is changed.
+1. Test case: `su 2`, then `edit 2 c/40`<br>Expected: An error saying that module 2 is S/U-ed and only 28 MCs of S/U quota are available for it. The credits are unchanged. Run `unsu 2` afterwards to restore the data.
 
 #### Checking the quota when nothing is SU-ed
 

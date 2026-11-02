@@ -309,7 +309,8 @@ public class Student {
      * @param newGrade  The new grade, or null to keep the current one.
      * @return The edited module.
      * @throws InvalidIndexException If the index is out of range.
-     * @throws EditException         If no field is given, the credit is not positive, or the new code already exists.
+     * @throws EditException         If no field is given, the credits are not from 1 to 40, the new code already
+     *                               exists, or the new credits of an S/U-ed module do not fit in the S/U quota.
      */
     public Module editModule(int index, String newCode, Integer newCredit, Grade newGrade) {
         Module module = getModule(index);
@@ -323,6 +324,9 @@ public class Student {
                 && isModuleExists(moduleList, newCode)) {
             throw new EditException("Module already exists: " + newCode);
         }
+        if (newCredit != null && module.isSu()) {
+            checkSuQuotaAllowsCredit(index, module, newCredit);
+        }
 
         if (newCode != null) {
             module.setModuleCode(newCode);
@@ -334,6 +338,29 @@ public class Student {
             module.setGrade(newGrade);
         }
         return module;
+    }
+
+    /**
+     * Checks that changing the credits of an S/U-ed module keeps the S/U quota from going below zero.
+     * The module's current credits are given back to the quota before the new credits are checked.
+     *
+     * @param index     The 1-based index of the module, used in the error message.
+     * @param module    The S/U-ed module whose credits will change.
+     * @param newCredit The new number of credits.
+     * @throws EditException If the new credits do not fit in the S/U quota.
+     */
+    private void checkSuQuotaAllowsCredit(int index, Module module, int newCredit) {
+        assert module.isSu() : "Only S/U-ed modules use the S/U quota";
+        int availableQuota = getRemainingSuQuota() + module.getCredit();
+        if (newCredit > availableQuota) {
+            logger.warning(() -> String.format(
+                    "Rejected editing module %d (%s) to %d MCs: only %d MCs of S/U quota available",
+                    index, module.getModuleCode(), newCredit, availableQuota));
+            throw new EditException(String.format(
+                    "Module %d is S/U-ed, and only %d MCs of S/U quota are available for it. "
+                            + "Remove the S/U with unsu %d first, or use fewer credits.",
+                    index, availableQuota, index));
+        }
     }
 
     /**

@@ -143,6 +143,8 @@ Changes the code, credits and/or grade of an existing module. Its S/U status and
 - At least one of the optional fields must be given.
 - Only the fields you give are changed; everything else stays as it is.
 - The same rules as in `add` apply: credits from 1 to 40, a known grade, and a code that no other module uses.
+- If the module has S/U applied, its new credits must also fit in your S/U quota.
+- If you give the same field more than once, for example `edit 1 g/A g/B`, the last one is used.
 
 **Examples:**
 
@@ -160,6 +162,8 @@ Updated module 2:
 
 - No field given shows `Provide at least one field to edit.`
 - A code that another module already uses shows `Module already exists: MA1521`.
+- New credits that do not fit in the S/U quota of an S/U-ed module show, for example, `Module 1 is S/U-ed, and only 28 MCs of S/U quota are available for it. Remove the S/U with unsu 1 first, or use fewer credits.`
+- A missing or invalid index, or an unknown field, shows `Usage: edit INDEX [m/MODULE_CODE] [c/CREDITS] [g/GRADE]`.
 
 ### Planning a module for a semester: `plan`
 
