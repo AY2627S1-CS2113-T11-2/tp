@@ -72,8 +72,8 @@ Adds a module to your records.
 
 **Format:** `add m/MODULE_CODE c/CREDITS g/GRADE`
 
-- `MODULE_CODE` is stored as typed and must not contain spaces. It is not checked against NUSMods. Two modules cannot have the same code; letter case is ignored, so `cs2113` and `CS2113` count as the same code.
-- `CREDITS` is the module's Modular Credits (MCs), a whole number from 1 to 40.
+- `MODULE_CODE` is stored as typed and must not contain spaces. It is not checked against NUSMods, so that you can also record modules taken on student exchange (SEP) and codes that do not follow the usual NUS format. Two modules cannot have the same code; letter case is ignored, so `cs2113` and `CS2113` count as the same code.
+- `CREDITS` is the module's Modular Credits (MCs), a whole number from 1 to 40. The limit is higher than most modules need, so that internships and attachments worth more MCs can also be recorded.
 - `GRADE` is one of `A+`, `A`, `A-`, `B+`, `B`, `B-`, `C+`, `C`, `D+`, `D`, `F`, `CS` or `CU`. Letter case is ignored. `CS` and `CU` grades do not count towards your GPA.
 
 **Examples:**
