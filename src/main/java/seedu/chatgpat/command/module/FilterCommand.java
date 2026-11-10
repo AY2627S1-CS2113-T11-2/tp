@@ -22,7 +22,7 @@ public class FilterCommand extends Command {
     private static final Pattern ARGUMENT_PATTERN = Pattern.compile(
             "filter\\s+y/(\\d+)\\s+s/(\\d+)");
     private static final String MESSAGE_USAGE = "Usage: filter y/YEAR s/SEM, or filter unplanned";
-
+    private static final String MESSAGE_NO_MODULES = "No modules recorded yet.";
     private final int year;
     private final int semester;
 
@@ -89,7 +89,8 @@ public class FilterCommand extends Command {
         String label = semester.toString();
         String message = formatResult(
                 String.format("Modules in %s:", label),
-                String.format("No modules found in %s.", label),
+                student.getModuleCount() == 0 ? MESSAGE_NO_MODULES: String.format("No modules found in %s.", label)
+                ,
                 student.filterModule(semester),
                 student);
         return new Response(message);

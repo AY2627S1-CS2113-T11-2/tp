@@ -99,7 +99,7 @@ public class FilterCommandTest {
 
         Response response = command.execute(emptyStudent);
 
-        String expected = "No modules found in Y2S1.";
+        String expected = "No modules recorded yet.";
 
         assertEquals(expected, response.message());
     }
